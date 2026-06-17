@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Boltzmann MapReduce — A Partition-Function Reduce for Forkable Sandboxes</title>
+<meta name="description" content="The sample size is an inverse temperature, so MapReduce's reduce is a partition function and consistency is the zero-temperature limit." />
+<meta name="color-scheme" content="light dark" />
+<meta property="og:title" content="Boltzmann MapReduce" />
+<meta property="og:description" content="A Partition-Function Reduce for Forkable Sandboxes" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#fbfaf7;
+    --bg-2:#f3f1ea;
+    --surface:#ffffff;
+    --ink:#1b1a17;
+    --ink-2:#403e39;
+    --ink-3:#6a675f;
+    --line:#e4e0d6;
+    --line-2:#d3cec1;
+    --accent:#b4451f;       /* warm vermilion */
+    --accent-soft:#f3dccf;
+    --accent-ink:#8f3414;
+    --ok:#1f5d40;
+    --ok-strong:#2f6b4f;
+    --ok-soft:#dceee3;
+    --ok-line:#9fcfb6;
+    --warn:#7d530f;
+    --warn-strong:#9a6a17;
+    --warn-soft:#f6ead0;
+    --warn-line:#dcb461;
+    --code-bg:#1d1c1a;
+    --code-ink:#ece8df;
+    --radius:14px;
+    --maxw:1080px;
+    --serif:"Newsreader",Georgia,"Times New Roman",serif;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#141310;
+      --bg-2:#1c1a16;
+      --surface:#1f1d19;
+      --ink:#f1ede4;
+      --ink-2:#d2cdc1;
+      --ink-3:#a39e91;
+      --line:#322f29;
+      --line-2:#403c34;
+      --accent:#e9784e;
+      --accent-soft:#3a241a;
+      --accent-ink:#f4ac8d;
+      --ok:#7fd4aa;
+      --ok-strong:#7fd4aa;
+      --ok-soft:#16271f;
+      --ok-line:#356b51;
+      --warn:#e3b75f;
+      --warn-strong:#e3b75f;
+      --warn-soft:#2c2516;
+      --warn-line:#6e571f;
+      --code-bg:#0e0d0c;
+      --code-ink:#ece8df;
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  }
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:17px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  a{color:var(--accent-ink);text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  ::selection{background:var(--accent-soft);color:var(--accent-ink)}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  @media(max-width:480px){.wrap{padding:0 18px}}
+
+  /* ---- skip link ---- */
+  .skip{position:absolute;left:-999px;top:0;background:var(--accent);color:#fff;padding:10px 16px;border-radius:8px;z-index:50}
+  .skip:focus{left:12px;top:12px}
+
+  /* ---- top bar ---- */
+  header.bar{
+    position:sticky;top:0;z-index:30;
+    -webkit-backdrop-filter:saturate(1.2) blur(10px);
+    backdrop-filter:saturate(1.2) blur(10px);
+    background:color-mix(in srgb,var(--bg) 84%,transparent);
+    border-bottom:1px solid var(--line);
+  }
+  .bar .wrap{display:flex;align-items:center;gap:18px;height:60px}
+  .brand{font-family:var(--serif);font-weight:600;font-size:1.06rem;letter-spacing:-.01em;white-space:nowrap}
+  .brand .dot{color:var(--accent)}
+  .nav{margin-left:auto;display:flex;gap:22px;font-size:.92rem}
+  .nav a{color:var(--ink-2)}
+  .nav a:hover{color:var(--accent-ink);text-decoration:none}
+  @media(max-width:720px){.nav{display:none}}
+
+  /* ---- hero ---- */
+  .hero{position:relative;padding:74px 0 56px;overflow:hidden}
+  @media(max-width:600px){.hero{padding:48px 0 40px}}
+  .hero::before{
+    content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1100px 460px at 78% -8%, color-mix(in srgb,var(--accent) 16%,transparent), transparent 60%),
+      radial-gradient(700px 420px at 6% 110%, color-mix(in srgb,var(--accent) 9%,transparent), transparent 60%);
+    opacity:.9;
+  }
+  .hero .wrap{position:relative;z-index:1}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:.74rem;letter-spacing:.13em;text-transform:uppercase;font-weight:600;
+    color:var(--accent-ink);background:var(--accent-soft);
+    padding:6px 13px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 24%,transparent);
+  }
+  h1.title{
+    font-family:var(--serif);font-weight:600;letter-spacing:-.02em;line-height:1.04;
+    font-size:clamp(2.2rem,6.2vw,4.05rem);margin:.5em 0 .12em;color:var(--ink);
+  }
+  h1.title .sub{display:block;font-size:.5em;font-weight:400;color:var(--ink-2);font-style:italic;letter-spacing:-.01em;margin-top:.25em}
+  .byline{color:var(--ink-2);font-size:1.02rem;margin:.6em 0 0}
+  .byline strong{color:var(--ink);font-weight:600}
+  .byline .aff{color:var(--ink-3)}
+  .thesis{
+    font-family:var(--serif);font-size:clamp(1.18rem,2.6vw,1.55rem);line-height:1.45;
+    color:var(--ink);max-width:46ch;margin:1.3rem 0 0;border-left:3px solid var(--accent);padding-left:18px;
+  }
+  .thesis em{color:var(--accent-ink);font-style:italic}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;
+    font-weight:600;font-size:.95rem;padding:12px 20px;border-radius:11px;
+    border:1px solid var(--line-2);background:var(--surface);color:var(--ink);
+    transition:transform .12s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn:hover{text-decoration:none;transform:translateY(-1px);box-shadow:0 6px 22px -12px rgba(0,0,0,.35)}
+  .btn .ic{width:16px;height:16px;flex:none}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-ink)}
+  .btn.ghost{background:transparent}
+
+  /* ---- section scaffolding ---- */
+  section{padding:62px 0;border-top:1px solid var(--line)}
+  @media(max-width:600px){section{padding:44px 0}}
+  .kicker{
+    font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--accent-ink);
+    margin:0 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .kicker::before{content:"";width:22px;height:2px;background:var(--accent);display:inline-block}
+  h2{font-family:var(--serif);font-weight:600;letter-spacing:-.015em;font-size:clamp(1.6rem,3.4vw,2.3rem);line-height:1.14;margin:0 0 .5em;color:var(--ink)}
+  h2 em{font-style:italic;color:var(--accent-ink)}
+  h3{font-family:var(--sans);font-weight:600;font-size:1.08rem;margin:0 0 .3em;letter-spacing:-.01em}
+  p.lead{font-size:1.08rem;color:var(--ink-2);max-width:64ch}
+  p{max-width:66ch}
+
+  /* ---- identity / equation ---- */
+  .eq-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:30px clamp(18px,4vw,44px);margin:8px 0 28px;
+    box-shadow:0 1px 0 var(--line) inset, 0 18px 40px -34px rgba(0,0,0,.5);
+  }
+  .eq-display{font-size:clamp(1rem,2.4vw,1.45rem);text-align:center;overflow-x:auto;padding:6px 2px}
+  /* MathJax-blocked fallback styling */
+  .eq-fallback{font-family:var(--mono);color:var(--ink);font-size:.98rem;line-height:2.2;text-align:center;letter-spacing:.01em}
+  .eq-fallback .v{color:var(--accent-ink)}
+  .two{display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:start}
+  @media(max-width:820px){.two{grid-template-columns:1fr;gap:22px}}
+  .explain p{margin:0 0 .9em}
+  .explain p:last-child{margin-bottom:0}
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .pill{font-size:.82rem;font-family:var(--mono);color:var(--ink-2);background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+  .pill b{color:var(--accent-ink)}
+
+  /* ---- why-now triptych ---- */
+  .triptych{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+  @media(max-width:820px){.triptych{grid-template-columns:1fr}}
+  .tcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 22px 24px;position:relative}
+  .tcard .num{font-family:var(--serif);font-size:.9rem;color:var(--accent);font-weight:600}
+  .tcard h3{margin-top:6px}
+  .tcard p{font-size:.96rem;color:var(--ink-2);margin:0;max-width:none}
+  .tcard .em{color:var(--ink);font-weight:600}
+  .arrow{color:var(--accent-ink);font-weight:600}
+
+  /* ---- measured / projected legend ---- */
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;padding:3px 9px;border-radius:6px;vertical-align:middle;line-height:1.2;white-space:nowrap}
+  .tag::before{content:"";width:7px;height:7px;border-radius:50%;flex:none}
+  .tag.measured{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok-line)}
+  .tag.measured::before{background:var(--ok-strong)}
+  .tag.proj{background:var(--warn-soft);color:var(--warn);border:1px dashed var(--warn-line)}
+  .tag.proj::before{background:var(--warn-strong);border-radius:1px}
+
+  /* ---- results ---- */
+  .stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:6px 0 30px}
+  @media(max-width:860px){.stat-strip{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:460px){.stat-strip{grid-template-columns:1fr}}
+  .stat{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--ok-line);border-radius:12px;padding:18px}
+  .stat .big{font-family:var(--serif);font-weight:600;font-size:1.7rem;line-height:1.05;letter-spacing:-.01em;color:var(--ink)}
+  .stat .big .u{display:block;font-size:.6em;color:var(--ink-3);font-weight:400}
+  .stat .big sup{font-size:.5em}
+  .stat .lab{font-size:.82rem;color:var(--ink-2);margin-top:10px;line-height:1.45}
+  .stat .lab b{color:var(--ink)}
+
+  .run{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}
+  @media(max-width:820px){.run{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .panel h3{display:flex;align-items:center;gap:9px}
+  .panel.live{border-left:4px solid var(--ok-line)}
+  .live-dot{width:9px;height:9px;border-radius:50%;background:var(--ok-strong);box-shadow:0 0 0 0 color-mix(in srgb,var(--ok-strong) 60%,transparent);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok-strong) 55%,transparent)}70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  .runlist{list-style:none;margin:14px 0 0;padding:0;font-size:.95rem}
+  .runlist li{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .runlist li:last-child{border-bottom:0}
+  .runlist .k{color:var(--ink-2)}
+  .runlist .val{font-family:var(--mono);color:var(--ink);font-weight:500;text-align:right}
+  /* projected panel: dashed border + diagonal hatch make it unmistakably "not measured" */
+  .panel.proj{
+    border:1px dashed var(--warn-line);
+    background:
+      repeating-linear-gradient(135deg, transparent, transparent 9px, color-mix(in srgb,var(--warn-strong) 6%,transparent) 9px, color-mix(in srgb,var(--warn-strong) 6%,transparent) 10px),
+      color-mix(in srgb,var(--warn-soft) 55%,var(--surface));
+  }
+  .panel.proj .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .panel.proj h3{margin:0}
+  .panel.proj ul{margin:12px 0 0;padding-left:18px;font-size:.95rem;color:var(--ink-2)}
+  .panel.proj ul li{margin:.45em 0}
+  .panel.proj ul li b{color:var(--ink)}
+  .panel.proj .note{font-size:.85rem;color:var(--warn);margin:14px 0 0;font-style:italic}
+
+  .subhead{font-family:var(--serif);font-size:1.4rem;font-weight:600;margin:8px 0 14px;color:var(--ink)}
+
+  /* ---- figure ---- */
+  figure{margin:8px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;text-align:center}
+  figure img{max-width:100%;height:auto;border-radius:8px;display:block;margin:0 auto;background:var(--bg-2)}
+  figcaption{font-size:.9rem;color:var(--ink-2);margin:16px auto 0;max-width:70ch;text-align:left;line-height:1.6}
+  figcaption b{color:var(--ink);font-weight:600}
+
+  /* ---- platforms ---- */
+  .platforms{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:6px}
+  .plat{font-family:var(--mono);font-size:.92rem;padding:9px 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink-2)}
+  .plat.us{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft);font-weight:600}
+  .plat.us::after{content:" · demo";color:var(--accent-ink)}
+
+  /* ---- code ---- */
+  .code-wrap{position:relative;margin-top:6px}
+  pre.code{
+    background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);
+    padding:22px;padding-top:42px;overflow-x:auto;font-family:var(--mono);font-size:.86rem;line-height:1.75;
+    border:1px solid var(--line-2);margin:0;
+  }
+  pre.code .cm{color:#9aae94}
+  pre.code .pr{color:#eda87f}
+  pre.code .fl{color:#8fbce0}
+  .copy-btn{
+    position:absolute;top:12px;right:12px;z-index:2;
+    font-family:var(--sans);font-size:.74rem;font-weight:600;letter-spacing:.03em;
+    color:var(--code-ink);background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);
+    padding:6px 11px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s;
+  }
+  .copy-btn:hover{background:rgba(255,255,255,.2)}
+  .copy-btn.done{background:var(--ok-strong);color:#fff;border-color:transparent}
+
+  /* ---- skill callout ---- */
+  .skill-card{
+    background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:var(--radius);padding:26px clamp(20px,4vw,34px);margin-top:8px;
+    box-shadow:0 1px 0 var(--line) inset, 0 18px 40px -34px rgba(0,0,0,.5);
+  }
+  .skill-card h3{font-size:1.16rem;font-family:var(--serif);font-weight:600}
+  .skill-card p{font-size:1rem;color:var(--ink-2);margin:.4em 0 0}
+  .skill-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center;margin-top:18px}
+  @media(max-width:760px){.skill-grid{grid-template-columns:1fr;gap:18px}}
+  .skill-cmd{position:relative}
+  .skill-cmd pre.code{padding-top:42px;font-size:.95rem}
+  .skill-cmd pre.code .pr{color:#eda87f}
+  .skill-aside p{font-size:.95rem;color:var(--ink-2);margin:0 0 .7em}
+  .skill-aside .lnk{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:.95rem}
+
+  /* ---- outlook / vision (forward-looking, visually distinct) ---- */
+  #outlook{
+    background:
+      repeating-linear-gradient(135deg, transparent, transparent 11px, color-mix(in srgb,var(--warn-strong) 5%,transparent) 11px, color-mix(in srgb,var(--warn-strong) 5%,transparent) 12px),
+      var(--bg-2);
+  }
+  .outlook-flag{
+    display:inline-flex;align-items:center;gap:8px;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
+    font-weight:700;padding:4px 11px;border-radius:7px;margin-bottom:14px;
+    background:var(--warn-soft);color:var(--warn);border:1px dashed var(--warn-line);
+  }
+  .outlook-flag::before{content:"";width:8px;height:8px;border-radius:1px;background:var(--warn-strong);flex:none}
+  .vision-lead{font-family:var(--serif);font-size:clamp(1.16rem,2.5vw,1.5rem);line-height:1.45;color:var(--ink);max-width:54ch;margin:0 0 6px;border-left:3px dashed var(--warn-line);padding-left:18px}
+  .vision-lead em{color:var(--warn);font-style:italic}
+  .vision-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:26px}
+  @media(max-width:760px){.vision-grid{grid-template-columns:1fr}}
+  .vcard{background:color-mix(in srgb,var(--surface) 82%,transparent);border:1px dashed var(--warn-line);border-radius:var(--radius);padding:22px 22px 24px}
+  .vcard h3{font-family:var(--sans);font-weight:600;font-size:1.06rem;margin:0 0 .35em;color:var(--ink)}
+  .vcard p{font-size:.96rem;color:var(--ink-2);margin:0;max-width:none}
+  .vcard p .em{color:var(--ink);font-weight:600}
+  .vcard .step{font-family:var(--serif);font-size:.88rem;color:var(--warn);font-weight:600;display:block;margin-bottom:4px}
+  .vision-line{margin-top:26px;padding:18px 20px;border:1px dashed var(--warn-line);border-radius:12px;background:color-mix(in srgb,var(--warn-soft) 40%,transparent);font-size:.95rem;color:var(--ink-2)}
+  .vision-line b{color:var(--ink)}
+  .vision-line .agenda{color:var(--warn);font-weight:700}
+
+  /* ---- bibtex ---- */
+  .bib-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+
+  /* ---- footer ---- */
+  footer{border-top:1px solid var(--line);background:var(--bg-2);padding:42px 0 56px}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:28px;justify-content:space-between;align-items:flex-start}
+  .foot-links{display:flex;flex-wrap:wrap;gap:20px;font-size:.93rem}
+  .foot-links a{color:var(--ink-2)}
+  .disclaimer{
+    margin-top:26px;font-size:.86rem;color:var(--ink-2);line-height:1.65;max-width:78ch;
+    border-top:1px dashed var(--line-2);padding-top:18px;
+  }
+  .disclaimer b.m{color:var(--ok)}
+  .disclaimer b.p{color:var(--warn)}
+  .meta{font-size:.85rem;color:var(--ink-3);margin-top:6px}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar">
+  <div class="wrap">
+    <span class="brand">Boltzmann MapReduce<span class="dot">.</span></span>
+    <nav class="nav" aria-label="Section navigation">
+      <a href="#identity">Identity</a>
+      <a href="#why">Why now</a>
+      <a href="#results">Results</a>
+      <a href="#figure">Figure</a>
+      <a href="#skill">Skill</a>
+      <a href="#outlook">Outlook</a>
+      <a href="#quickstart">Quickstart</a>
+      <a href="#cite">Cite</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- (1) HERO -->
+  <section class="hero" style="border-top:0">
+    <div class="wrap">
+      <span class="eyebrow">Statistical MapReduce · Forkable Sandboxes · The AI lambda-server era</span>
+      <h1 class="title">
+        Boltzmann MapReduce
+        <span class="sub">A Partition-Function Reduce for Forkable Sandboxes</span>
+      </h1>
+      <p class="byline" style="margin-top:1.1em;color:var(--ink-3);font-size:.96rem;max-width:52ch">
+        A principled <em style="font-style:italic;color:var(--accent-ink)">reduce</em> for the era of AI lambda servers &mdash; toward a Hadoop-like primitive for code evolution via snapshots.
+      </p>
+      <p class="byline">
+        <strong>Yossi Eliaz</strong>
+        &nbsp;·&nbsp; <span class="aff">Incredibuild / islo.dev / HIT CS Department, Israel</span><br />
+        <span class="aff"><a href="mailto:yossi.eliaz@incredibuild.com">yossi.eliaz@incredibuild.com</a> &nbsp;·&nbsp; <a href="mailto:yossi@islo.dev">yossi@islo.dev</a> &nbsp;·&nbsp; <a href="mailto:eliazy@hit.ac.il">eliazy@hit.ac.il</a></span>
+      </p>
+      <p class="thesis">
+        Sample size is an <em>inverse temperature</em>, so MapReduce's
+        <em>reduce</em> is a <em>partition function</em> &mdash; and consistency
+        is the <em>zero-temperature limit</em>.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="./boltzmann-mapreduce.pdf">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+          Read the paper
+        </a>
+        <a class="btn" href="https://github.com/zozo123/boltzmann-mapreduce">
+          <svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0C17.3 4.6 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+          Code &amp; artifact
+        </a>
+        <a class="btn ghost" href="#quickstart">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 3l14 9-14 9V3z"/></svg>
+          Run the demo
+        </a>
+      </div>
+      <p class="meta">Open artifact &middot; deterministic seed&nbsp;0 &middot; repository currently private</p>
+    </div>
+  </section>
+
+  <!-- (2) THE IDENTITY -->
+  <section id="identity">
+    <div class="wrap">
+      <p class="kicker">The identity</p>
+      <h2>A worker's confidence <em>is</em> a Gibbs measure</h2>
+      <div class="eq-card">
+        <div class="eq-display" id="eq1">
+          \[ h(\theta)\;\propto\;\exp\!\big(-\beta\,E(\theta)\big),\qquad \beta = n \]
+        </div>
+        <div class="eq-display" id="eq2" style="margin-top:6px">
+          \[ Z \;=\; \int \prod_{k} h_k(\theta)\,d\theta,\qquad
+             \hat\theta \;=\; \arg\max_\theta \prod_k h_k(\theta)
+             \;=\; \frac{\sum_k \tau_k\,\hat\theta_k}{\sum_k \tau_k},\;\; \tau_k=\tfrac{1}{\sigma_k^2} \]
+        </div>
+        <noscript>
+          <p class="eq-fallback" style="margin-top:10px">
+            h(<span class="v">&theta;</span>) &prop; exp( &minus;<span class="v">&beta;</span>&middot;E(<span class="v">&theta;</span>) ),
+            with <span class="v">&beta;</span> = n &nbsp;&mdash;&nbsp;
+            Z = &int; &prod;<sub>k</sub> h<sub>k</sub>(<span class="v">&theta;</span>) d<span class="v">&theta;</span>,
+            mode = (&sum; &tau;<sub>k</sub> &theta;<sub>k</sub>) / (&sum; &tau;<sub>k</sub>), &nbsp;&tau;<sub>k</sub> = 1/&sigma;<sub>k</sub><sup>2</sup>
+          </p>
+        </noscript>
+      </div>
+      <div class="two">
+        <div class="explain">
+          <p>
+            To leading order under <b>local asymptotic normality</b>, a worker's
+            confidence density over a parameter <em>&theta;</em> is a
+            Gibbs&ndash;Boltzmann measure: it concentrates as
+            <span class="pill">exp(&minus;&beta;&middot;E(&theta;))</span>, where the
+            energy <em>E</em> is the negative log-likelihood and the inverse
+            temperature <em>&beta;</em> is exactly the local sample size <em>n</em>.
+            More data means colder, sharper belief.
+          </p>
+          <p>
+            Disjoint data chunks contribute <b>independent factors</b>, so their
+            densities <em>multiply</em>. The <em>reduce</em> step &mdash; combining
+            workers &mdash; is literally a <b>partition function</b> <em>Z</em> over
+            the product of per-worker measures.
+          </p>
+          <p>
+            The mode of that product is <b>precision-weighted (inverse-variance)
+            pooling</b>: confident workers (low variance, high <em>&beta;</em>) dominate.
+            Send the temperature to zero and you recover the deterministic, consistent
+            estimate &mdash; the <b>zero-temperature limit</b>.
+          </p>
+        </div>
+        <div>
+          <div class="pill-row" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div class="pill"><b>&beta; = n</b> &nbsp;sample size is inverse temperature</div>
+            <div class="pill"><b>E(&theta;)</b> &nbsp;= negative log-likelihood (the energy)</div>
+            <div class="pill"><b>Z = &int;&prod;h<sub>k</sub></b> &nbsp;reduce = partition function</div>
+            <div class="pill"><b>T &rarr; 0</b> &nbsp;= consistency / oracle estimate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- (3) WHY NOW -->
+  <section id="why" style="background:var(--bg-2)">
+    <div class="wrap">
+      <p class="kicker">Why now &mdash; the era thesis</p>
+      <h2>Map got commoditized. Reduce didn't.</h2>
+      <p class="lead">
+        MapReduce fit the commodity machine of its era: the cheap PC. The commodity
+        machine of the AI era is the <b>forkable, copy-on-write microVM sandbox</b>
+        &mdash; snapshot a warm environment once, fork it into many cheap replicas to
+        run, test, and evaluate code and agents in parallel.
+      </p>
+      <div class="triptych">
+        <div class="tcard">
+          <div class="num">01</div>
+          <h3>The commodity machine</h3>
+          <p>The forkable sandbox is the new cheap PC. <span class="em">Snapshot once, fork into many</span> isolated microVMs to run code and agents concurrently &mdash; the unit of parallelism is now a warm environment, not a process.</p>
+        </div>
+        <div class="tcard">
+          <div class="num">02</div>
+          <h3>The snapshot is an OCI image</h3>
+          <p>The snapshot's information layer is an <span class="em">OCI image</span>: content-addressed, deduplicated base-OS / runtime / user-code layers. Forking shares everything but the diff &mdash; the substrate that makes mass forking cheap.</p>
+        </div>
+        <div class="tcard">
+          <div class="num">03</div>
+          <h3>Reduce is the gap</h3>
+          <p>The <span class="arrow">map</span> step (fork, run, isolate) is commoditized; the <span class="arrow">reduce</span> is not. Forks emit <span class="em">noisy, uncertain results</span> &mdash; pass rates, eval scores, coefficients with standard errors &mdash; that an arithmetic reduce throws away. <b>Boltzmann MapReduce makes the reduce statistical.</b></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- (4) RESULTS -->
+  <section id="results">
+    <div class="wrap">
+      <p class="kicker">Results <span class="tag measured">Measured</span> <span class="tag proj">Projected</span></p>
+      <h2>What the open artifact actually shows</h2>
+      <p class="lead">All four metrics below are <b>measured</b> from the open artifact under deterministic seed&nbsp;0. The partition-function reduce is checked against closed form algebraically and against the full-data oracle empirically.</p>
+
+      <div class="stat-strip">
+        <div class="stat">
+          <div class="big">machine<span class="u">precision</span></div>
+          <div class="lab">Partition-function reduce <b>==</b> closed-form inverse-variance pooling (algebraic check)</div>
+        </div>
+        <div class="stat">
+          <div class="big">4.3&times;10<sup>&minus;4</sup></div>
+          <div class="lab">Sampling gap: pooled estimate recovers the full-data oracle on a 12-shard mean</div>
+        </div>
+        <div class="stat">
+          <div class="big">1/&radic;N</div>
+          <div class="lab">Temperature cools with shards &mdash; CI half-width shrinks as 1/&radic;N</div>
+        </div>
+        <div class="stat">
+          <div class="big">6 / 6</div>
+          <div class="lab">Correctness tests pass</div>
+        </div>
+      </div>
+
+      <div class="panel" style="border-left:3px solid var(--ok-line);margin-bottom:30px">
+        <h3>Byzantine robustness <span class="tag measured">Measured</span></h3>
+        <p style="margin:.4em 0 0">
+          A single <b>confident liar</b> drags naive pooling to <b style="font-family:var(--mono)">17.0</b>.
+          The clip layer recovers <b style="font-family:var(--mono);color:var(--ok)">4.95</b> &mdash; the true value &mdash;
+          and <b>flags</b> the outlier instead of silently absorbing it.
+        </p>
+      </div>
+
+      <h3 class="subhead">The real islo run</h3>
+      <div class="run">
+        <div class="panel live">
+          <h3><span class="live-dot" aria-hidden="true"></span> Live on islo <span class="tag measured">Measured</span></h3>
+          <p style="margin:.3em 0 0;font-size:.95rem;color:var(--ink-2)">
+            4 shards forked from a single OCI snapshot, each computing its confidence
+            density on its own microVM, then reduced.
+          </p>
+          <ul class="runlist">
+            <li><span class="k">Snapshot size</span><span class="val">141 MB OCI (uv-locked)</span></li>
+            <li><span class="k">Concurrent forks</span><span class="val">4 microVMs</span></li>
+            <li><span class="k">Pooled estimate</span><span class="val">4.942</span></li>
+            <li><span class="k">Full-data oracle</span><span class="val">4.945</span></li>
+            <li><span class="k">Gap</span><span class="val">2.9&times;10&#8315;&sup3;</span></li>
+            <li><span class="k">Per-fork dispatch</span><span class="val">~6.7 s (round-trip)</span></li>
+          </ul>
+        </div>
+
+        <div class="panel proj">
+          <div class="head">
+            <span class="tag proj">Projected &mdash; not measured</span>
+          </div>
+          <h3>Systems &amp; large-scale targets</h3>
+          <p style="margin:.4em 0 0;font-size:.95rem;color:var(--ink-2)">
+            <b>Design targets and extrapolations</b>, not numbers from this artifact's run:
+          </p>
+          <ul>
+            <li>Per-restore microVM latency of <b>3&ndash;8&nbsp;ms</b></li>
+            <li>Sub-<b>20&nbsp;ms</b> p99 dispatch</li>
+            <li>Large-scale Byzantine accuracy on intrusion-detection datasets</li>
+          </ul>
+          <p class="note">Treat these as projections; only the measured panels are from the artifact.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- (5) FIGURE -->
+  <section id="figure" style="background:var(--bg-2)">
+    <div class="wrap">
+      <p class="kicker">Figure</p>
+      <h2>Per-shard densities collapse into the pooled belief</h2>
+      <figure>
+        <img src="./fig_gibbs.png" alt="Several broad, overlapping per-shard Gibbs confidence densities collapsing into one sharp pooled density; the full-data oracle density overlaps the pooled curve." loading="lazy" decoding="async" width="1600" height="900" style="max-width:760px" />
+        <figcaption>
+          <b>Figure 1.</b> Each forked shard produces a broad Gibbs&ndash;Boltzmann
+          confidence density (high temperature, few samples). Multiplying them &mdash;
+          the partition-function reduce &mdash; yields a single <b>sharp pooled
+          density</b>. The <b>full-data oracle</b> density overlaps the pooled one,
+          illustrating the zero-temperature limit: distributed precision-weighted
+          pooling recovers the centralized estimate.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- (6) PLATFORMS -->
+  <section id="platforms">
+    <div class="wrap">
+      <p class="kicker">Where it runs</p>
+      <h2>Any forkable-sandbox cloud with snapshot + fork</h2>
+      <p class="lead">Boltzmann MapReduce is substrate-agnostic. The reduce only needs workers that fork from a snapshot and report a confidence density.</p>
+      <div class="platforms">
+        <span class="plat us">islo</span>
+        <span class="plat">Daytona</span>
+        <span class="plat">Morph</span>
+        <span class="plat">E2B</span>
+        <span class="plat">Modal</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- (6b) USE IT AS AN AGENT SKILL -->
+  <section id="skill">
+    <div class="wrap">
+      <p class="kicker">Use it as an agent skill</p>
+      <h2>Install the <em>reduce</em> as a one-line agent skill</h2>
+      <p class="lead">
+        The artifact is packaged as an installable agent skill: drop it into any
+        AI coding agent so it can call the Boltzmann reduce to aggregate a forked
+        ensemble of results &mdash; precision-weighted, with a Byzantine clip,
+        instead of an arithmetic average.
+      </p>
+      <div class="skill-card">
+        <h3>Add it to your agent</h3>
+        <div class="skill-grid">
+          <div class="skill-cmd">
+            <div class="code-wrap">
+              <button class="copy-btn" type="button" data-copy="skillcmd" aria-label="Copy skill install command">Copy</button>
+              <pre class="code" id="skillcmd"><code><span class="pr">npx</span> skills add zozo123/boltzmann-mapreduce</code></pre>
+            </div>
+          </div>
+          <div class="skill-aside">
+            <p>
+              Skills are reusable, installable capabilities for AI coding agents.
+              This one lets an agent invoke the partition-function reduce over a
+              forked ensemble and get back a pooled estimate with its confidence.
+            </p>
+            <p>
+              <a class="lnk" href="https://www.skills.sh/" rel="noopener">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="width:15px;height:15px"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg>
+                skills.sh &mdash; the open directory of agent skills
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- (6c) OUTLOOK / THE BIGGER PICTURE -->
+  <section id="outlook">
+    <div class="wrap">
+      <span class="outlook-flag">Outlook &mdash; forward-looking research agenda, not measured</span>
+      <p class="kicker">The bigger picture</p>
+      <h2>Distributed software engineering for <em>AI coding agents</em></h2>
+      <p class="vision-lead">
+        We have not yet figured out how to work in <em>parallel, fire-and-forget
+        sandboxes</em> at scale. This is the new Hadoop-like moment &mdash; the era of
+        <em>AI lambda servers</em> &mdash; and what is still missing is a theory for
+        <em>code evolution via snapshots</em>.
+      </p>
+      <p class="lead" style="margin-top:18px">
+        MapReduce gave distributed <b>data</b> a paradigm. The open question this
+        paper opens is the analogue for <b>coding and system-building</b>: picture an
+        army of AI coding agents building products in parallel, each snapshotting a
+        warm repo into an OCI image, forking per task / branch / hypothesis, evolving
+        code fire-and-forget, then being reaped. The <b>map</b> step is commoditizing
+        fast. The <b>reduce</b> &mdash; how you turn noisy, uncertain agent outcomes
+        into a trustworthy decision &mdash; has no principled theory yet.
+      </p>
+
+      <div class="vision-grid">
+        <div class="vcard">
+          <span class="step">The map is commoditizing</span>
+          <h3>Fork, run, isolate, evolve</h3>
+          <p>Snapshot a warm environment as an <span class="em">OCI image</span>, fork it per task, branch, or hypothesis, let an agent evolve code fire-and-forget, then reap it. The unit of parallelism is a forkable sandbox &mdash; and that layer is racing toward commodity.</p>
+        </div>
+        <div class="vcard">
+          <span class="step">The reduce is the open problem</span>
+          <h3>Combining noisy agent outcomes</h3>
+          <p>Each fork emits an outcome &mdash; <span class="em">test pass-rates, eval scores, build / patch successes, benchmark deltas</span> &mdash; with an implicit confidence: how much it ran, how concentrated, how trustworthy. There is no principled theory for how to combine them into a decision.</p>
+        </div>
+        <div class="vcard">
+          <span class="step">A first principled primitive</span>
+          <h3>Why not an arithmetic average</h3>
+          <p>Boltzmann MapReduce treats each outcome's confidence as a Gibbs measure, so the right combination is the <span class="em">partition-function (precision-weighted) reduce</span> with a Byzantine clip &mdash; not a flat mean that throws the uncertainty away.</p>
+        </div>
+        <div class="vcard">
+          <span class="step">The larger program</span>
+          <h3>Software engineering by agents</h3>
+          <p>The ambition: <span class="em">reinvent how software is built</span> when the builders are agents and the machine is a forkable sandbox. &ldquo;Distributed software engineering for AI coding agents&rdquo; is the program; this paper contributes one trustworthy reduce.</p>
+        </div>
+      </div>
+
+      <p class="vision-line">
+        <span class="agenda">Where this stands.</span> Everything in this section is an
+        <b>outlook and research agenda we motivate</b>, not a benchmark. The paper
+        <b>measures</b> the statistical reduce &mdash; the algebraic equivalence, the
+        oracle-recovery gaps, the 1/&radic;N cooling, the Byzantine clip, and the live
+        islo run. The software-engineering-by-agents program is the vision those
+        measured results point toward; we report <b>no SWE numbers here</b>.
+      </p>
+    </div>
+  </section>
+
+  <!-- (7) QUICKSTART -->
+  <section id="quickstart" style="background:var(--bg-2)">
+    <div class="wrap">
+      <p class="kicker">Quickstart</p>
+      <h2>Run the demo in three lines</h2>
+      <p class="lead">Clone, install, and run the mean scenario with a Byzantine outlier locally &mdash; then point the same demo at an islo snapshot.</p>
+      <div class="code-wrap">
+        <button class="copy-btn" type="button" data-copy="qs" aria-label="Copy quickstart commands">Copy</button>
+        <pre class="code" id="qs"><code><span class="pr">git</span> clone https://github.com/zozo123/boltzmann-mapreduce &amp;&amp; <span class="pr">cd</span> boltzmann-mapreduce
+<span class="pr">uv</span> sync &amp;&amp; <span class="pr">uv</span> run python demo.py --scenario mean --byzantine
+<span class="cm"># on islo, entry point = an on-box AI harness:</span>
+<span class="cm">#   islo login &amp;&amp; islo use bmr-base --source github://zozo123/boltzmann-mapreduce -- true</span>
+<span class="cm">#   islo snapshot save bmr-base --name bmr-base</span>
+<span class="cm">#   uv run python demo.py --backend islo --scenario mean --harness claude</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- (8) BIBTEX -->
+  <section id="cite">
+    <div class="wrap">
+      <div class="bib-head">
+        <div>
+          <p class="kicker" style="margin-bottom:6px">Cite</p>
+          <h2 style="margin:0">BibTeX</h2>
+        </div>
+      </div>
+      <div class="code-wrap">
+        <button class="copy-btn" type="button" data-copy="bib" aria-label="Copy BibTeX entry">Copy</button>
+        <pre class="code" id="bib"><code>@misc{eliaz2026boltzmann,
+  title        = {Boltzmann MapReduce: A Partition-Function Reduce for Forkable Sandboxes},
+  author       = {Eliaz, Yossi},
+  year         = {2026},
+  howpublished = {\url{https://github.com/zozo123/boltzmann-mapreduce}}
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- (9) FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <span class="brand">Boltzmann MapReduce<span class="dot">.</span></span>
+        <p class="meta" style="margin-top:8px">Yossi Eliaz &middot; Incredibuild / islo.dev / HIT CS Department, Israel &middot; 2026</p>
+      </div>
+      <nav class="foot-links" aria-label="Footer links">
+        <a href="./boltzmann-mapreduce.pdf">Paper (PDF)</a>
+        <a href="https://github.com/zozo123/boltzmann-mapreduce">GitHub repo</a>
+        <a href="#skill">Agent skill</a>
+        <a href="https://www.skills.sh/">skills.sh</a>
+        <a href="#quickstart">Quickstart</a>
+        <a href="#cite">BibTeX</a>
+        <a href="https://islo.dev">islo.dev</a>
+        <a href="mailto:yossi.eliaz@incredibuild.com">Contact</a>
+      </nav>
+    </div>
+    <p class="disclaimer">
+      <b>Honesty note:</b> the algebraic equivalence, the oracle-recovery gaps, the
+      1/&radic;N cooling, the Byzantine clip recovery, the 6/6 tests, and the live
+      4-shard islo run are all <b class="m">measured</b> from the open artifact
+      (seed&nbsp;0). The systems-latency figures (3&ndash;8&nbsp;ms restore, sub-20&nbsp;ms
+      p99 dispatch) and the large-scale Byzantine accuracy claims are
+      <b class="p">projections</b>, not measurements. The &ldquo;distributed software
+      engineering for AI coding agents&rdquo; program in the Outlook is a
+      <b class="p">forward-looking research agenda</b> we motivate, not benchmarked here.
+    </p>
+  </div>
+</footer>
+
+<!-- MathJax (degrades to readable text / noscript fallback if CDN is blocked) -->
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+    svg: { fontCache: 'global' },
+    startup: { typeset: true }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+<script>
+  // Copy-to-clipboard for code blocks
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-copy');
+      var el = document.getElementById(id);
+      if(!el) return;
+      var text = el.innerText;
+      var done = function(){
+        btn.textContent = 'Copied';
+        btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ fallback(text, done); });
+      } else { fallback(text, done); }
+    });
+  });
+  function fallback(text, done){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  // If MathJax CDN fails to load, swap displayed TeX for a readable text fallback.
+  setTimeout(function(){
+    if(!window.MathJax || !window.MathJax.startup || !window.MathJax.startup.document){
+      var e1 = document.getElementById('eq1');
+      var e2 = document.getElementById('eq2');
+      if(e1){ e1.className = 'eq-display eq-fallback';
+        e1.innerHTML = 'h(<span class="v">&theta;</span>) &prop; exp( &minus;<span class="v">&beta;</span>&middot;E(<span class="v">&theta;</span>) ),&nbsp;&nbsp; with <span class="v">&beta;</span> = n'; }
+      if(e2){ e2.className = 'eq-display eq-fallback';
+        e2.innerHTML = 'Z = &int; &prod;<sub>k</sub> h<sub>k</sub>(<span class="v">&theta;</span>) d<span class="v">&theta;</span> &nbsp;&middot;&nbsp; mode &theta;&#770; = (&sum; &tau;<sub>k</sub>&theta;<sub>k</sub>) / (&sum; &tau;<sub>k</sub>), &nbsp; &tau;<sub>k</sub> = 1/&sigma;<sub>k</sub><sup>2</sup>'; }
+    }
+  }, 2500);
+</script>
+</body>
+</html>

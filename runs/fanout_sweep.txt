@@ -1,0 +1,17 @@
+
+=== fanout sweep (concurrency=32, snapshot=bmr-base, fork=`-- true`) ===
+ fanout     ok  succ%   total_s   forks/s   p50_s   p95_s
+      4      4   100%      10.9      0.37    7.48   10.66
+     16     16   100%      10.4      1.54    9.54   10.27
+     64      3     5%      31.8      0.09   13.79   14.38  fails={'capacity': 61}
+  capacity/error wall hit at fanout 64 (success 5%); stopping ladder.
+
+=== fanout sweep (concurrency=16, snapshot=bmr-base, fork=`-- true`) ===
+ fanout     ok  succ%   total_s   forks/s   p50_s   p95_s
+     32     13    41%      22.4      0.58   12.21   12.79  fails={'capacity': 19}
+  capacity/error wall hit at fanout 32 (success 41%); stopping ladder.
+
+=== fanout sweep (concurrency=12, snapshot=bmr-base, fork=`-- true`) ===
+ fanout     ok  succ%   total_s   forks/s   p50_s   p95_s
+     64     64   100%      64.8      0.99    7.06    9.37
+    256    255   100%     240.3      1.06    6.87    9.04  fails={'capacity': 1}

@@ -1,0 +1,6 @@
+Local process-fork ensemble scaling (tiny mean shards, true mu=5.0)
+ fanout K   total_s   forks/s  CI_halfwidth  |pool-5|
+       16      0.42        38        0.0790    0.0551
+       64      0.28       227        0.0405    0.0104
+      256      0.29       872        0.0202    0.0041
+     1024      0.52      1960        0.0102    0.0021

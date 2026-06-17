@@ -1,0 +1,50 @@
+\documentclass[10pt,twocolumn]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=0.72in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{{./}{figs/}}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{leftmargin=1.3em,topsep=1pt,itemsep=0pt,parsep=0pt}
+\setlength{\columnsep}{0.26in}
+\setlength{\parskip}{0pt}
+\setlength{\abovedisplayskip}{3pt}
+\setlength{\belowdisplayskip}{3pt}
+\setlength{\abovedisplayshortskip}{2pt}
+\setlength{\belowdisplayshortskip}{2pt}
+\renewcommand{\baselinestretch}{0.99}
+
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{1.1ex}{0.5ex}
+\titlespacing*{\subsection}{0pt}{0.8ex}{0.4ex}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
+
+\title{\vspace{-1.5em}\textbf{Boltzmann MapReduce: A Partition-Function Reduce for Forkable Sandboxes}}
+
+\author{%
+  Yossi Eliaz\\
+  \normalsize Incredibuild \quad\textbar\quad islo.dev \quad\textbar\quad HIT CS Department, Israel\\
+  \normalsize\texttt{yossi.eliaz@incredibuild.com} \quad \texttt{yossi@islo.dev} \quad \texttt{eliazy@hit.ac.il}
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+\input{body_5pp}
+
+\bibliographystyle{abbrv}
+\bibliography{refs}
+
+\end{document}

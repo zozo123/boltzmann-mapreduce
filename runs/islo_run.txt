@@ -1,0 +1,19 @@
+Boltzmann MapReduce -- real islo run (committed evidence)
+islo CLI: islo 0.32.0-dev.134
+backend: islo (snapshot-once, fork-per-shard); entry point: direct -- uv run python -m bmr.worker
+parent snapshot: bmr-base, 141.3 MB (uv-locked OCI environment; `uv sync`)
+scenario: mean, seed 0, 4 shards
+
+  shard 0  n=362  sandbox=bmr-shard-0  fork_wall_s=6.679
+  shard 1  n=309  sandbox=bmr-shard-1  fork_wall_s=6.696
+  shard 2  n=389  sandbox=bmr-shard-2  fork_wall_s=6.701
+  shard 3  n=188  sandbox=bmr-shard-3  fork_wall_s=6.668
+  per-fork wall_s: min=6.67 max=6.70 mean=6.69   (restore+run+capture round-trip)
+  total wall_s (4 concurrent forks): 6.70
+
+  pooled = 4.9422   oracle (full-data) = 4.9450   gap = 2.88e-3
+
+Note: per-fork wall_s is round-trip-inclusive dispatch, NOT the in-host restore
+(which we did not isolate; Table 1's 3-8 ms restore remains a projection).
+Workers are deterministic/seed-pinned, so islo and local backends produce
+identical statistics; this run evidences the substrate executing end-to-end.

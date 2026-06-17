@@ -1,0 +1,15 @@
+Logistic heterogeneous sweep: pooled vs naive vs full-data oracle MLE
+true beta=[0.5,-1.2,2.0], shard sizes=[2000,400,120,60,5000], 8 seeds
+
+  seed 0: ||pool-oracle||=1.340e-02  ||naive-oracle||=0.307  ratio=23x
+  seed 1: ||pool-oracle||=5.800e-03  ||naive-oracle||=0.205  ratio=35x
+  seed 2: ||pool-oracle||=7.136e-03  ||naive-oracle||=0.178  ratio=25x
+  seed 3: ||pool-oracle||=8.716e-03  ||naive-oracle||=0.127  ratio=15x
+  seed 4: ||pool-oracle||=7.260e-03  ||naive-oracle||=0.044  ratio=6x
+  seed 5: ||pool-oracle||=5.451e-03  ||naive-oracle||=0.118  ratio=22x
+  seed 6: ||pool-oracle||=2.485e-03  ||naive-oracle||=0.114  ratio=46x
+  seed 7: ||pool-oracle||=1.610e-02  ||naive-oracle||=0.319  ratio=20x
+
+pooled gap : mean=8.29e-03 sd=4.15e-03
+naive  gap : mean=0.177 sd=0.090
+ratio      : mean=24x  range 6-46x

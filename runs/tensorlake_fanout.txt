@@ -1,0 +1,9 @@
+
+=== Tensorlake fanout sweep (concurrency=4, fork=create+run+terminate) ===
+ fanout     ok  succ%   total_s    sbx/s  create_p50  create_p95  wall_p50
+      8      8   100%      12.1      0.7        1.42        4.48      3.40
+
+=== Tensorlake fanout sweep (concurrency=8, fork=create+run+terminate) ===
+ fanout     ok  succ%   total_s    sbx/s  create_p50  create_p95  wall_p50
+     64     64   100%     101.0      0.6        2.65        7.42      5.97
+    256    256   100%     387.3      0.7        3.44        9.00      7.15
