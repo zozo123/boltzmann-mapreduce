@@ -3,201 +3,934 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Uncertainty-Aware Reduction for Forkable Sandboxes</title>
-  <meta name="description" content="An uncertainty-aware result contract for combining independent, non-overlapping evidence from forked workers.">
-  <meta property="og:title" content="Uncertainty-Aware Reduction for Forkable Sandboxes">
-  <meta property="og:description" content="A thermodynamic view of established confidence-distribution pooling, with explicit provenance and failure boundaries.">
+  <meta name="theme-color" content="#07110e">
+  <title>Boltzmann MapReduce — Uncertainty-Aware Reduction</title>
+  <meta name="description" content="A result contract for combining independent worker estimates without throwing away uncertainty, evidence provenance, or disagreement.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://zozo123.github.io/boltzmann-mapreduce/">
+  <meta property="og:title" content="Boltzmann MapReduce — Uncertainty-Aware Reduction">
+  <meta property="og:description" content="Parallel answers are cheap. Knowing what to trust is the hard part.">
+  <meta property="og:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Three uncertain worker distributions merging into one sharper pooled result">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Boltzmann MapReduce">
+  <meta name="twitter:description" content="An uncertainty- and provenance-aware result contract for forkable workers.">
+  <meta name="twitter:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
   <style>
     :root {
-      --ink: #132521;
-      --muted: #5c6d67;
-      --paper: #f8f5ed;
-      --panel: #fffdf8;
-      --green: #0f6b58;
-      --green-dark: #084b3e;
-      --mint: #dcebe2;
-      --gold: #d18b29;
-      --rule: #d9ddd4;
-      --shadow: 0 20px 55px rgba(21, 48, 40, .10);
+      --night: #07110e;
+      --night-soft: #0b1915;
+      --night-raised: #10231d;
+      --paper: #f4f5ee;
+      --paper-bright: #fbfcf7;
+      --ink: #10201b;
+      --muted: #5d6b65;
+      --line: rgba(16, 32, 27, .12);
+      --line-dark: rgba(221, 255, 238, .13);
+      --mint: #7df0b7;
+      --mint-soft: #c7f9df;
+      --acid: #c9f569;
+      --amber: #f6b95f;
+      --coral: #f28b72;
+      --blue: #83b5ff;
+      --white: #f7fff9;
+      --serif: Iowan Old Style, Baskerville, "Times New Roman", serif;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+      --shadow: 0 28px 80px rgba(3, 14, 10, .13);
+      --radius-lg: 32px;
+      --radius-md: 22px;
     }
+
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
       margin: 0;
       color: var(--ink);
-      background:
-        radial-gradient(circle at 85% 4%, rgba(209,139,41,.16), transparent 28rem),
-        linear-gradient(180deg, #eef4ed 0, var(--paper) 36rem);
-      font: 17px/1.65 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--paper);
+      font: 16px/1.65 var(--sans);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
-    a { color: var(--green-dark); }
-    .wrap { width: min(1120px, calc(100% - 40px)); margin: auto; }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: .035;
+      background-image: radial-gradient(rgba(255,255,255,.75) .45px, transparent .55px);
+      background-size: 4px 4px;
+    }
+    a { color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    .wrap { width: min(1220px, calc(100% - 48px)); margin-inline: auto; }
+    .skip-link {
+      position: absolute;
+      left: 18px;
+      top: -80px;
+      z-index: 100;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--white);
+      color: var(--night);
+      font-weight: 800;
+    }
+    .skip-link:focus { top: 18px; }
+
+    .site-header {
+      position: absolute;
+      inset: 0 0 auto;
+      z-index: 10;
+      color: var(--white);
+    }
     nav {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 22px 0; gap: 24px; font-size: 14px; letter-spacing: .02em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 84px;
+      gap: 24px;
+      border-bottom: 1px solid rgba(255,255,255,.11);
     }
-    nav .mark { font-weight: 800; text-decoration: none; }
-    nav .links { display: flex; gap: 22px; flex-wrap: wrap; }
-    nav .links a { color: var(--muted); text-decoration: none; }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(125,240,183,.5);
+      border-radius: 11px;
+      background: rgba(125,240,183,.08);
+      color: var(--mint);
+      font: 700 17px/1 var(--serif);
+      box-shadow: inset 0 0 18px rgba(125,240,183,.06);
+    }
+    .nav-links { display: flex; align-items: center; gap: 26px; }
+    .nav-links a {
+      color: rgba(247,255,249,.66);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .025em;
+      transition: color .2s ease;
+    }
+    .nav-links a:hover, .nav-links a:focus-visible { color: var(--white); }
+    .nav-pill {
+      padding: 9px 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      color: var(--white) !important;
+      background: rgba(255,255,255,.06);
+    }
+
     .hero {
-      display: grid; grid-template-columns: 1.25fr .75fr; gap: 68px;
-      align-items: center; padding: 82px 0 104px;
+      position: relative;
+      overflow: hidden;
+      min-height: 880px;
+      padding: 148px 0 80px;
+      color: var(--white);
+      background:
+        radial-gradient(circle at 74% 31%, rgba(39, 126, 91, .23), transparent 31rem),
+        radial-gradient(circle at 12% 104%, rgba(197, 245, 105, .07), transparent 35rem),
+        var(--night);
     }
-    .eyebrow {
-      color: var(--green); text-transform: uppercase; letter-spacing: .15em;
-      font-size: 12px; font-weight: 800;
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 560px;
+      height: 560px;
+      right: -260px;
+      top: 54px;
+      border: 1px solid rgba(125,240,183,.11);
+      border-radius: 50%;
+      box-shadow: 0 0 0 90px rgba(125,240,183,.02), 0 0 0 180px rgba(125,240,183,.015);
+      pointer-events: none;
     }
-    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.08; margin-top: 0; }
-    h1 { font-size: clamp(48px, 7vw, 86px); letter-spacing: -.045em; margin: 18px 0 26px; }
-    h2 { font-size: clamp(34px, 4vw, 52px); letter-spacing: -.025em; margin-bottom: 20px; }
-    h3 { font-size: 25px; margin-bottom: 10px; }
-    .dek { max-width: 760px; color: #40544d; font-size: 21px; line-height: 1.55; }
-    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 34px; }
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, .94fr) minmax(520px, 1.06fr);
+      gap: clamp(48px, 5vw, 74px);
+      align-items: center;
+    }
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 24px;
+      color: var(--mint);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .kicker::before {
+      content: "";
+      width: 26px;
+      height: 1px;
+      background: currentColor;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2 { font-family: var(--serif); font-weight: 500; }
+    h1 {
+      max-width: 720px;
+      margin-bottom: 26px;
+      font-size: clamp(54px, 5.4vw, 76px);
+      line-height: .98;
+      letter-spacing: -.055em;
+    }
+    h1 em { color: var(--mint); font-style: normal; }
+    .hero-copy {
+      max-width: 640px;
+      margin-bottom: 0;
+      color: rgba(239,250,243,.69);
+      font-size: clamp(18px, 1.7vw, 21px);
+      line-height: 1.55;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
     .button {
-      display: inline-block; padding: 12px 18px; border: 1px solid var(--green-dark);
-      border-radius: 999px; text-decoration: none; font-weight: 750; font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50px;
+      padding: 12px 18px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      color: var(--white);
+      background: rgba(255,255,255,.04);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      transition: transform .2s ease, background .2s ease, border-color .2s ease;
     }
-    .button.primary { background: var(--green-dark); color: white; }
-    .contract {
-      background: var(--panel); border: 1px solid var(--rule); border-radius: 18px;
-      padding: 26px; box-shadow: var(--shadow); transform: rotate(1.2deg);
+    .button::after { content: "↗"; margin-left: 10px; font-size: 15px; }
+    .button.primary {
+      border-color: var(--mint);
+      color: var(--night);
+      background: var(--mint);
     }
-    .contract .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
-    code, pre { font-family: "SFMono-Regular", Consolas, monospace; }
-    .contract pre { margin: 16px 0 0; white-space: pre-wrap; font-size: 14px; line-height: 1.7; color: var(--green-dark); }
-    section { padding: 86px 0; border-top: 1px solid var(--rule); }
-    .intro-grid, .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-    .card { background: rgba(255,253,248,.78); border: 1px solid var(--rule); border-radius: 15px; padding: 26px; }
-    .card p { color: var(--muted); margin-bottom: 0; }
-    .number { color: var(--gold); font-weight: 900; font-size: 13px; letter-spacing: .1em; }
-    .equation {
-      margin: 36px 0; background: var(--green-dark); color: white; border-radius: 16px;
-      padding: 30px; overflow-x: auto; font: 17px/1.8 "SFMono-Regular", Consolas, monospace;
+    .button.anchor::after { content: "↓"; }
+    .button:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.4); }
+    .button.primary:hover { border-color: var(--mint-soft); background: var(--mint-soft); }
+    .signal-strip {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-top: 46px;
+      color: rgba(247,255,249,.55);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
     }
-    .equation b { color: #f4c77f; }
-    .split { display: grid; grid-template-columns: .9fr 1.1fr; gap: 64px; align-items: start; }
-    .split > * { min-width: 0; }
-    .callout { border-left: 4px solid var(--gold); padding: 4px 0 4px 22px; color: var(--muted); }
-    table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
-    th, td { text-align: left; padding: 15px 17px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-    th { color: var(--green-dark); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
-    td { font-size: 15px; }
-    tr:last-child td { border-bottom: 0; }
-    .yes { color: var(--green); font-weight: 800; }
-    .no { color: #9a522f; font-weight: 800; }
-    figure { margin: 28px 0 0; }
-    figure img { width: 100%; display: block; border: 1px solid var(--rule); border-radius: 14px; background: white; }
-    figcaption { color: var(--muted); font-size: 14px; margin-top: 10px; }
-    .quickstart { max-width: 100%; background: #142d27; color: #e9f2ed; border-radius: 18px; padding: 28px; overflow: auto; }
-    .quickstart pre { margin: 0; font-size: 14px; line-height: 1.8; }
-    .citation-record { font-size: 18px; color: #40544d; }
-    .citation-record cite { color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-style: normal; }
-    .citation-note { margin-top: 24px; }
-    footer { padding: 52px 0 70px; color: var(--muted); font-size: 14px; }
+    .signal-strip span { display: inline-flex; align-items: center; gap: 8px; }
+    .signal-strip span:not(:last-child)::after {
+      content: "+";
+      margin: 0 13px;
+      color: rgba(247,255,249,.28);
+    }
+    .signal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 12px var(--mint); }
+
+    .lab {
+      position: relative;
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 30px;
+      background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
+      box-shadow: 0 40px 100px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.08);
+      backdrop-filter: blur(12px);
+    }
+    .lab-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 5px 6px 17px;
+    }
+    .lab-title { font-size: 12px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .live-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: rgba(247,255,249,.56);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .live-status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 0 4px rgba(125,240,183,.1), 0 0 16px rgba(125,240,183,.5);
+    }
+    .lab-stage {
+      position: relative;
+      min-height: 408px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 22px;
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        rgba(0,0,0,.13);
+      background-size: 32px 32px;
+    }
+    .lab-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 65% 53%, rgba(125,240,183,.08), transparent 42%);
+      pointer-events: none;
+    }
+    .workers {
+      position: absolute;
+      left: 22px;
+      top: 38px;
+      display: grid;
+      gap: 13px;
+      width: 154px;
+    }
+    .worker {
+      position: relative;
+      padding: 13px 14px 12px;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 14px;
+      background: rgba(12,28,23,.88);
+      box-shadow: 0 12px 32px rgba(0,0,0,.18);
+    }
+    .worker::after {
+      content: "";
+      position: absolute;
+      left: calc(100% + 1px);
+      top: 50%;
+      width: 58px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(125,240,183,.55), rgba(125,240,183,.05));
+      transform-origin: left;
+    }
+    .worker:nth-child(1)::after { transform: rotate(24deg); }
+    .worker:nth-child(3)::after { transform: rotate(-24deg); }
+    .worker-label { display: flex; justify-content: space-between; gap: 8px; color: rgba(247,255,249,.48); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .worker-value { margin-top: 5px; font: 500 21px/1.1 var(--serif); letter-spacing: -.02em; }
+    .worker-info { display: flex; align-items: center; gap: 7px; margin-top: 9px; color: rgba(247,255,249,.42); font-size: 9px; }
+    .info-bar { flex: 1; height: 3px; overflow: hidden; border-radius: 4px; background: rgba(255,255,255,.1); }
+    .info-fill { height: 100%; width: 60%; border-radius: inherit; background: var(--mint); transition: width .35s ease; }
+    .worker:nth-child(2) .info-fill { background: var(--blue); }
+    .worker:nth-child(3) .info-fill { background: var(--amber); }
+    .merge-node {
+      position: absolute;
+      left: 224px;
+      top: 154px;
+      display: grid;
+      place-items: center;
+      width: 96px;
+      height: 96px;
+      border: 1px solid rgba(125,240,183,.36);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(125,240,183,.18), rgba(8,21,17,.92) 68%);
+      box-shadow: 0 0 0 12px rgba(125,240,183,.025), 0 0 54px rgba(125,240,183,.12);
+      text-align: center;
+    }
+    .merge-node::after {
+      content: "";
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      width: 52px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(125,240,183,.5), rgba(125,240,183,.08));
+    }
+    .sigma { display: block; color: var(--mint); font: 500 26px/1 var(--serif); }
+    .merge-label { display: block; margin-top: 6px; color: rgba(247,255,249,.45); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .result-card {
+      position: absolute;
+      right: 18px;
+      top: 69px;
+      width: 205px;
+      min-height: 260px;
+      padding: 18px;
+      border: 1px solid rgba(125,240,183,.22);
+      border-radius: 18px;
+      background: rgba(8,22,18,.9);
+      box-shadow: 0 22px 64px rgba(0,0,0,.25);
+    }
+    .result-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .result-label { color: rgba(247,255,249,.48); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .confidence-badge { padding: 4px 7px; border-radius: 999px; color: var(--mint); background: rgba(125,240,183,.08); font-size: 8px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+    .result-value { margin: 13px 0 0; font: 500 31px/1 var(--serif); letter-spacing: -.03em; }
+    .result-value small { color: rgba(247,255,249,.4); font: 500 13px/1 var(--sans); }
+    .chart-wrap { position: relative; height: 94px; margin-top: 13px; }
+    #fusionChart { display: block; width: 100%; height: 100%; }
+    .axis-labels { display: flex; justify-content: space-between; margin-top: -3px; color: rgba(247,255,249,.28); font: 8px/1 var(--mono); }
+    .disagreement {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 15px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      color: rgba(247,255,249,.48);
+      font-size: 9px;
+    }
+    .disagreement strong { color: var(--mint); font-size: 10px; transition: color .2s ease; }
+    .lab-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .scenario {
+      min-height: 40px;
+      padding: 7px 9px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 11px;
+      color: rgba(247,255,249,.48);
+      background: rgba(255,255,255,.03);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      transition: color .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .scenario:hover, .scenario:focus-visible { color: var(--white); border-color: rgba(125,240,183,.35); }
+    .scenario[aria-pressed="true"] { color: var(--night); border-color: var(--mint); background: var(--mint); }
+    .lab-caption { margin: 12px 4px 0; color: rgba(247,255,249,.42); font-size: 11px; line-height: 1.45; }
+
+    .hero-foot {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.2fr repeat(3, .6fr);
+      gap: 22px;
+      margin-top: 64px;
+      padding-top: 25px;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .hero-foot p { margin-bottom: 0; color: rgba(247,255,249,.39); font-size: 12px; line-height: 1.55; }
+    .metric { padding-left: 18px; border-left: 1px solid rgba(255,255,255,.1); }
+    .metric strong { display: block; margin-bottom: 5px; color: var(--white); font: 500 25px/1 var(--serif); }
+    .metric span { color: rgba(247,255,249,.42); font-size: 10px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
+
+    section { padding: 116px 0; }
+    .section-label { margin-bottom: 16px; color: #2e7960; font-size: 11px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
+    .section-label::before { content: "— "; }
+    h2 { max-width: 840px; margin-bottom: 22px; font-size: clamp(43px, 5vw, 68px); line-height: 1.03; letter-spacing: -.045em; }
+    h3 { margin-bottom: 11px; font-size: 19px; line-height: 1.25; letter-spacing: -.02em; }
+    .lead { max-width: 720px; margin-bottom: 0; color: var(--muted); font-size: 19px; line-height: 1.6; }
+
+    .idea { background: var(--paper-bright); }
+    .idea-head { display: grid; grid-template-columns: 1.2fr .8fr; gap: 80px; align-items: end; }
+    .idea-aside {
+      padding: 22px 0 4px 22px;
+      border-left: 2px solid var(--mint);
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .flow {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 68px;
+    }
+    .flow::before {
+      content: "";
+      position: absolute;
+      left: 9%;
+      right: 9%;
+      top: 39px;
+      height: 1px;
+      background: var(--line);
+    }
+    .flow-card { position: relative; z-index: 1; min-width: 0; }
+    .flow-node {
+      display: grid;
+      place-items: center;
+      width: 80px;
+      height: 80px;
+      margin-bottom: 22px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--paper-bright);
+      box-shadow: 0 16px 44px rgba(13,42,32,.07);
+      color: #27765c;
+      font: 500 27px/1 var(--serif);
+    }
+    .flow-card:last-child .flow-node { color: var(--night); border-color: var(--mint); background: var(--mint); }
+    .flow-index { margin-bottom: 8px; color: #3b8069; font-size: 10px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .flow-card p { color: var(--muted); font-size: 14px; }
+    .contract-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 52px;
+      padding: 21px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #eef1e9;
+    }
+    .contract-label { align-self: center; margin-right: 8px; color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+    .token { padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-bright); color: #23483b; font: 12px/1 var(--mono); }
+
+    .value-section { position: relative; overflow: hidden; background: #dfe9df; }
+    .value-section::after {
+      content: "";
+      position: absolute;
+      width: 480px;
+      height: 480px;
+      right: -180px;
+      bottom: -250px;
+      border: 1px solid rgba(20,62,48,.08);
+      border-radius: 50%;
+      box-shadow: 0 0 0 70px rgba(20,62,48,.025), 0 0 0 140px rgba(20,62,48,.018);
+    }
+    .value-grid { position: relative; z-index: 1; display: grid; grid-template-columns: .75fr 1.25fr; gap: 88px; align-items: start; }
+    .value-statement { position: sticky; top: 40px; }
+    .value-statement h2 { font-size: clamp(42px, 4.8vw, 64px); }
+    .value-cards { display: grid; gap: 14px; }
+    .value-card {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 22px;
+      padding: 27px;
+      border: 1px solid rgba(16,32,27,.1);
+      border-radius: 22px;
+      background: rgba(251,252,247,.75);
+      box-shadow: 0 18px 50px rgba(12,34,27,.05);
+    }
+    .value-number { color: #35765f; font: 500 40px/1 var(--serif); }
+    .value-card p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+    .value-card code { color: #26684f; font: 12px var(--mono); }
+
+    .boundary { color: var(--white); background: var(--night); }
+    .boundary .section-label { color: var(--mint); }
+    .boundary h2 { max-width: 900px; }
+    .boundary .lead { color: rgba(247,255,249,.56); }
+    .boundary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 60px; }
+    .boundary-card {
+      min-height: 220px;
+      padding: 29px;
+      border: 1px solid var(--line-dark);
+      border-radius: 23px;
+      background: rgba(255,255,255,.035);
+    }
+    .boundary-card.good { background: linear-gradient(145deg, rgba(125,240,183,.09), rgba(255,255,255,.025)); }
+    .boundary-icon { display: inline-grid; place-items: center; width: 34px; height: 34px; margin-bottom: 31px; border-radius: 50%; font-size: 15px; font-weight: 900; }
+    .good .boundary-icon { color: var(--night); background: var(--mint); }
+    .bad .boundary-icon { color: var(--coral); border: 1px solid rgba(242,139,114,.35); background: rgba(242,139,114,.07); }
+    .boundary-card h3 { font-size: 22px; }
+    .boundary-card p { max-width: 480px; margin-bottom: 0; color: rgba(247,255,249,.53); }
+    .boundary-list { display: grid; gap: 12px; margin-top: 22px; padding: 0; list-style: none; }
+    .boundary-list li { display: flex; gap: 10px; color: rgba(247,255,249,.73); font-size: 13px; }
+    .boundary-list li::before { content: "•"; color: var(--mint); }
+    .bad .boundary-list li::before { color: var(--coral); }
+    .warning-band {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-top: 18px;
+      padding: 20px 24px;
+      border: 1px solid rgba(246,185,95,.24);
+      border-radius: 18px;
+      color: rgba(247,255,249,.66);
+      background: rgba(246,185,95,.06);
+      font-size: 13px;
+    }
+    .warning-band strong { color: var(--amber); }
+
+    .evidence { background: var(--paper-bright); }
+    .evidence-top { display: grid; grid-template-columns: .85fr 1.15fr; gap: 72px; align-items: start; }
+    .published-figure {
+      overflow: hidden;
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    .published-figure img { display: block; width: 100%; }
+    .published-figure figcaption { padding: 17px 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .evidence-copy p { color: var(--muted); }
+    .fact-list { display: grid; gap: 0; margin-top: 34px; border-top: 1px solid var(--line); }
+    .fact {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 19px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .fact strong { color: #286a52; font: 500 23px/1.1 var(--serif); }
+    .fact span { color: var(--muted); font-size: 13px; }
+
+    .citation { background: #e9eee7; }
+    .citation-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 68px; align-items: start; }
+    .citation-record { color: var(--muted); font-size: 17px; }
+    .citation-record cite { color: var(--ink); font-family: var(--serif); font-style: normal; }
+    .note {
+      margin-top: 23px;
+      padding: 16px 18px;
+      border-left: 3px solid var(--amber);
+      color: var(--muted);
+      background: rgba(255,255,255,.36);
+      font-size: 13px;
+    }
+    .citation .button, .artifact .button { border-color: rgba(16,32,27,.2); color: var(--ink); background: rgba(255,255,255,.38); }
+    .citation .button.primary, .artifact .button.primary { border-color: var(--night); color: var(--white); background: var(--night); }
+    .code-card {
+      position: relative;
+      max-width: 100%;
+      overflow: auto;
+      padding: 28px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 22px;
+      color: #dff8e9;
+      background: var(--night-soft);
+      box-shadow: var(--shadow);
+    }
+    .code-card::before { content: "BIBTEX"; display: block; margin-bottom: 18px; color: var(--mint); font: 800 9px/1 var(--sans); letter-spacing: .13em; }
+    .code-card pre { min-width: 520px; margin: 0; white-space: pre-wrap; font: 11px/1.75 var(--mono); }
+
+    .artifact { background: var(--paper-bright); }
+    .artifact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: center; }
+    .terminal {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--night);
+      box-shadow: var(--shadow);
+    }
+    .terminal-head { display: flex; gap: 6px; padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .terminal-head i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.18); }
+    .terminal-head i:nth-child(1) { background: var(--coral); }
+    .terminal-head i:nth-child(2) { background: var(--amber); }
+    .terminal-head i:nth-child(3) { background: var(--mint); }
+    .terminal pre { overflow-x: auto; margin: 0; padding: 25px; color: #dff8e9; font: 12px/1.9 var(--mono); }
+    .terminal .prompt { color: var(--mint); }
+    .artifact-copy p { color: var(--muted); }
+
+    footer { padding: 42px 0 54px; color: rgba(247,255,249,.5); background: var(--night); font-size: 12px; }
+    .footer-grid { display: flex; justify-content: space-between; gap: 30px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.1); }
+    .footer-grid strong { color: var(--white); }
+    .footer-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 18px; }
+    .footer-links a { text-decoration: none; }
+
+    :focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
+    @media (max-width: 1050px) {
+      .hero { min-height: auto; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-copy { max-width: 760px; }
+      .lab { max-width: 680px; width: 100%; }
+      .hero-foot { grid-template-columns: 1fr repeat(3, .5fr); }
+      .idea-head, .value-grid, .evidence-top, .citation-grid, .artifact-grid { gap: 48px; }
+    }
     @media (max-width: 820px) {
-      .hero, .split { grid-template-columns: 1fr; gap: 36px; }
-      .hero { padding-top: 45px; }
-      .intro-grid, .cards { grid-template-columns: 1fr; }
-      nav .links { display: none; }
-      h1 { font-size: 50px; }
-      table { display: block; overflow-x: auto; }
+      .wrap { width: min(100% - 32px, 680px); }
+      .nav-links a:not(.nav-pill) { display: none; }
+      .hero { padding-top: 132px; }
+      h1 { font-size: clamp(50px, 13vw, 72px); }
+      .hero-foot { grid-template-columns: 1fr 1fr 1fr; }
+      .hero-foot > p { grid-column: 1 / -1; }
+      .metric { padding-left: 0; border-left: 0; }
+      .idea-head, .value-grid, .evidence-top, .citation-grid, .artifact-grid { grid-template-columns: 1fr; }
+      .idea-aside { max-width: 620px; }
+      .flow { grid-template-columns: 1fr 1fr; row-gap: 34px; }
+      .flow::before { display: none; }
+      .value-statement { position: static; }
+      .boundary-grid { grid-template-columns: 1fr; }
+      section { padding: 88px 0; }
+    }
+    @media (max-width: 620px) {
+      body::before { display: none; }
+      .wrap { width: min(100% - 24px, 520px); }
+      nav { min-height: 72px; }
+      .brand { font-size: 13px; }
+      .nav-pill { padding: 8px 11px; }
+      .hero { padding: 116px 0 70px; }
+      h1 { font-size: clamp(45px, 13vw, 60px); }
+      .hero-copy { font-size: 17px; }
+      .actions { align-items: stretch; flex-direction: column; }
+      .button { width: 100%; }
+      .signal-strip { flex-wrap: wrap; row-gap: 8px; }
+      .lab { padding: 10px; border-radius: 23px; }
+      .lab-stage { min-height: 572px; }
+      .workers { left: 14px; right: 14px; top: 22px; grid-template-columns: repeat(3, 1fr); width: auto; }
+      .worker { min-width: 0; padding: 11px 9px; }
+      .worker::after { display: none; }
+      .worker-label span:first-child { overflow: hidden; text-overflow: ellipsis; }
+      .worker-label span:last-child { display: none; }
+      .worker-value { font-size: 18px; }
+      .merge-node { left: 50%; top: 180px; width: 84px; height: 84px; transform: translateX(-50%); }
+      .merge-node::after { left: 50%; top: 100%; width: 1px; height: 38px; background: linear-gradient(rgba(125,240,183,.5), rgba(125,240,183,.08)); }
+      .result-card { left: 50%; right: auto; top: 304px; width: min(270px, calc(100% - 28px)); transform: translateX(-50%); }
+      .lab-controls { grid-template-columns: 1fr; }
+      .scenario { min-height: 38px; }
+      .hero-foot { grid-template-columns: 1fr; gap: 18px; margin-top: 58px; }
+      .hero-foot > p { grid-column: auto; }
+      .metric { display: flex; align-items: baseline; gap: 12px; }
+      .flow { grid-template-columns: 1fr; }
+      .flow-card { display: grid; grid-template-columns: 68px 1fr; column-gap: 17px; }
+      .flow-node { grid-row: 1 / 4; width: 68px; height: 68px; margin: 0; border-radius: 20px; }
+      .contract-row { padding: 16px; }
+      .contract-label { width: 100%; margin-bottom: 6px; }
+      .value-card { grid-template-columns: 48px 1fr; gap: 12px; padding: 22px 18px; }
+      .value-number { font-size: 30px; }
+      .warning-band { align-items: flex-start; }
+      .citation-grid, .artifact-grid { gap: 38px; }
+      .code-card { padding: 20px; }
+      .footer-grid { flex-direction: column; }
+      .footer-links { justify-content: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
     }
   </style>
 </head>
 <body>
-  <header class="wrap">
-    <nav>
-      <a class="mark" href="#top">UAR / 2026</a>
-      <div class="links">
-        <a href="#method">Method</a>
-        <a href="#evidence">Evidence</a>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="wrap" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="Boltzmann MapReduce home">
+        <span class="brand-mark" aria-hidden="true">β</span>
+        <span>Boltzmann MapReduce</span>
+      </a>
+      <div class="nav-links">
+        <a href="#idea">The idea</a>
+        <a href="#boundary">Boundaries</a>
         <a href="#citation">Citation</a>
-        <a href="#limits">Limits</a>
-        <a href="#artifact">Artifact</a>
+        <a class="nav-pill" href="https://github.com/zozo123/boltzmann-mapreduce">GitHub ↗</a>
       </div>
     </nav>
-    <div class="hero" id="top">
-      <div>
-        <div class="eyebrow">Research artifact · revision</div>
-        <h1>Uncertainty-Aware Reduction for Forkable Sandboxes</h1>
-        <p class="dek">Forks should return uncertainty and provenance, not unexplained scalars. For independent, non-overlapping evidence about one target, Gaussian confidence factors merge through associative natural parameters.</p>
-        <div class="actions">
-          <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read the corrected repository PDF</a>
-          <a class="button" href="https://github.com/zozo123/boltzmann-mapreduce">View repository</a>
-        </div>
-      </div>
-      <aside class="contract" aria-label="Worker result contract">
-        <div class="label">Worker result contract</div>
-        <pre>{
-  theta_hat,
-  J,          # information / observation
-  n,
-  lineage,
-  evidence_ids,
-  metadata
-}</pre>
-      </aside>
-    </div>
   </header>
 
-  <main>
-    <section id="method">
-      <div class="wrap">
-        <div class="eyebrow">The method</div>
-        <h2>A small interface with a sharp boundary.</h2>
-        <div class="intro-grid">
-          <article class="card"><div class="number">01 / EMIT</div><h3>Keep uncertainty</h3><p>Each worker emits an estimate and information matrix, plus sample count and evidence lineage.</p></article>
-          <article class="card"><div class="number">02 / MERGE</div><h3>Add natural parameters</h3><p>Compatible Gaussian factors merge as sums of precision, precision-weighted location, and a quadratic constant.</p></article>
-          <article class="card"><div class="number">03 / AUDIT</div><h3>Expose conflict</h3><p>The exact product normalizer contains a disagreement energy that grows when confident workers disagree.</p></article>
-        </div>
-        <div class="equation">
-          P = &Sigma;<sub>k</sub> n<sub>k</sub>J<sub>k</sub> &nbsp;&nbsp; q = &Sigma;<sub>k</sub> P<sub>k</sub>&theta;&#770;<sub>k</sub> &nbsp;&nbsp; c = &Sigma;<sub>k</sub> &theta;&#770;<sub>k</sub><sup>T</sup>P<sub>k</sub>&theta;&#770;<sub>k</sub><br>
-          <b>&theta;&#770; = P<sup>-1</sup>q</b> &nbsp;&nbsp; disagreement = &frac12;(c - q<sup>T</sup>P<sup>-1</sup>q)
-        </div>
-        <p class="callout"><strong>What the thermodynamic language means:</strong> with per-observation quadratic energy, sample size can be written as inverse temperature. That convention is interpretive. The invariant statistical quantity is total precision <em>nJ</em>.</p>
-      </div>
-    </section>
-
-    <section id="evidence">
-      <div class="wrap split">
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="wrap hero-grid">
         <div>
-          <div class="eyebrow">Evidence ledger</div>
-          <h2>Measured facts are separated from hypotheses.</h2>
-          <p>The artifact contains algebraic checks, deterministic sanity checks, and three platform logs. The platform rows are intentionally not compared as a benchmark: operations, dates, accounts, and environments differ.</p>
-          <figure>
-            <img src="./fig_gibbs.png" alt="Information-weighted Gaussian factors and their pooled estimate">
-            <figcaption>Illustrative Gaussian factors. Narrower factors contribute more information; this figure is not evidence of general efficiency.</figcaption>
-          </figure>
-        </div>
-        <div>
-          <table>
-            <thead><tr><th>Claim</th><th>Artifact evidence</th><th>Not established</th></tr></thead>
-            <tbody>
-              <tr><td>Reducer algebra</td><td class="yes">Hierarchical merge, deduplication, exact-normalizer tests</td><td>Arbitrary non-Gaussian pooling</td></tr>
-              <tr><td>Statistical sanity</td><td class="yes">Mean, regression, 8-seed IID logistic sweep</td><td>Broad efficiency theorem</td></tr>
-              <tr><td>Outlier behavior</td><td class="yes">Scalar demo + multivariate test</td><td class="no">Certified Byzantine tolerance</td></tr>
-              <tr><td>islo</td><td class="yes">255/256 named snapshot restore-and-run</td><td>Isolated restore microbenchmark</td></tr>
-              <tr><td>Daytona</td><td class="yes">1024/1024 default creates</td><td>Named snapshot restore</td></tr>
-              <tr><td>Tensorlake</td><td class="yes">256/256 default creates</td><td>Named snapshot restore</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="citation">
-      <div class="wrap split">
-        <div>
-          <div class="eyebrow">Citation</div>
-          <h2>Cite the published arXiv record.</h2>
-          <p class="citation-record"><cite>Yossi Eliaz. “Boltzmann MapReduce: A Partition-Function Reduce for Forkable Sandboxes.”</cite> arXiv:2607.09689 [cs.AI], 2026. <a href="https://doi.org/10.48550/arXiv.2607.09689">doi:10.48550/arXiv.2607.09689</a>.</p>
-          <p class="callout citation-note"><strong>Version note:</strong> citation metadata follows arXiv v1, submitted 17 June 2026. The repository PDF is the corrected revision and may differ in title and content from arXiv v1.</p>
+          <p class="kicker">Uncertainty-aware reduction</p>
+          <h1>Parallel answers are cheap. Knowing what to <em>trust</em> is the hard part.</h1>
+          <p class="hero-copy">Make every worker return an estimate, its uncertainty, and where its evidence came from. Then combine independent results without pretending every answer deserves an equal vote.</p>
           <div class="actions">
-            <a class="button" href="https://arxiv.org/abs/2607.09689">Open arXiv record</a>
-            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read corrected repository PDF</a>
+            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read the corrected PDF</a>
+            <a class="button anchor" href="#idea">See the idea in 10 seconds</a>
+          </div>
+          <div class="signal-strip" aria-label="Worker result ingredients">
+            <span><i class="signal-dot" aria-hidden="true"></i> Estimate</span>
+            <span>Uncertainty</span>
+            <span>Provenance</span>
           </div>
         </div>
-        <div class="quickstart" aria-label="BibTeX citation"><pre>@misc{eliaz2026boltzmann,
+
+        <div class="lab" aria-labelledby="lab-title">
+          <div class="lab-head">
+            <span class="lab-title" id="lab-title">Reduction lab</span>
+            <span class="live-status">Interactive model</span>
+          </div>
+          <div class="lab-stage">
+            <div class="workers" aria-label="Three worker estimates">
+              <div class="worker">
+                <div class="worker-label"><span>Worker A</span><span>θ̂</span></div>
+                <div class="worker-value" data-worker-value="0">4.88</div>
+                <div class="worker-info"><span>info</span><div class="info-bar"><div class="info-fill" data-info-bar="0"></div></div></div>
+              </div>
+              <div class="worker">
+                <div class="worker-label"><span>Worker B</span><span>θ̂</span></div>
+                <div class="worker-value" data-worker-value="1">5.03</div>
+                <div class="worker-info"><span>info</span><div class="info-bar"><div class="info-fill" data-info-bar="1"></div></div></div>
+              </div>
+              <div class="worker">
+                <div class="worker-label"><span>Worker C</span><span>θ̂</span></div>
+                <div class="worker-value" data-worker-value="2">4.96</div>
+                <div class="worker-info"><span>info</span><div class="info-bar"><div class="info-fill" data-info-bar="2"></div></div></div>
+              </div>
+            </div>
+            <div class="merge-node" aria-label="Add compatible natural parameters">
+              <span><span class="sigma">Σ</span><span class="merge-label">P · q · c</span></span>
+            </div>
+            <div class="result-card">
+              <div class="result-top">
+                <span class="result-label">Pooled result</span>
+                <span class="confidence-badge">with uncertainty</span>
+              </div>
+              <p class="result-value"><span id="pooledValue">4.98</span> <small id="pooledUncertainty">± 0.10</small></p>
+              <div class="chart-wrap">
+                <canvas id="fusionChart" role="img" aria-label="Three Gaussian worker factors and their sharper pooled result">Three uncertain worker estimates combine into one information-weighted result.</canvas>
+              </div>
+              <div class="axis-labels"><span>4.3</span><span>estimate θ</span><span>5.7</span></div>
+              <div class="disagreement"><span>Disagreement energy</span><strong id="disagreementValue">LOW · 0.19</strong></div>
+            </div>
+          </div>
+          <div class="lab-controls" role="group" aria-label="Choose an illustrative worker scenario">
+            <button class="scenario" type="button" data-scenario="aligned" aria-pressed="true">Workers agree</button>
+            <button class="scenario" type="button" data-scenario="unequal" aria-pressed="false">Unequal information</button>
+            <button class="scenario" type="button" data-scenario="conflict" aria-pressed="false">Confident conflict</button>
+          </div>
+          <p class="lab-caption" id="scenarioCaption">Agreement makes the pooled factor sharper without moving it far. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence.</p>
+        </div>
+      </div>
+
+      <div class="wrap hero-foot" aria-label="Artifact summary">
+        <p>The statistical core is established inverse-information pooling. The contribution is the result contract, the auditable merge, and the explicit boundary around dependence.</p>
+        <div class="metric"><strong>17</strong><span>Tests</span></div>
+        <div class="metric"><strong>3</strong><span>Sanity paths</span></div>
+        <div class="metric"><strong>1</strong><span>Locked E2E</span></div>
+      </div>
+    </section>
+
+    <section class="idea" id="idea">
+      <div class="wrap">
+        <div class="idea-head">
+          <div>
+            <p class="section-label">The idea in one glance</p>
+            <h2>Keep the information that ordinary reducers throw away.</h2>
+          </div>
+          <p class="idea-aside">A scalar says <em>what</em> a worker thinks. A statistical result also says <em>how much evidence supports it</em> and <em>whether that evidence was already counted</em>.</p>
+        </div>
+
+        <div class="flow" aria-label="Four-stage uncertainty-aware reduction flow">
+          <article class="flow-card">
+            <div class="flow-node" aria-hidden="true">xₖ</div>
+            <div class="flow-index">01 · Partition</div>
+            <h3>Disjoint evidence</h3>
+            <p>Each worker receives a non-overlapping shard targeting the same parameter.</p>
+          </article>
+          <article class="flow-card">
+            <div class="flow-node" aria-hidden="true">θ̂ₖ</div>
+            <div class="flow-index">02 · Emit</div>
+            <h3>Estimate + information</h3>
+            <p>Workers return location, uncertainty, sample size, lineage, and evidence IDs.</p>
+          </article>
+          <article class="flow-card">
+            <div class="flow-node" aria-hidden="true">Σ</div>
+            <div class="flow-index">03 · Reduce</div>
+            <h3>Add natural parameters</h3>
+            <p>Compatible Gaussian summaries merge associatively as P, q, and c.</p>
+          </article>
+          <article class="flow-card">
+            <div class="flow-node" aria-hidden="true">θ̂</div>
+            <div class="flow-index">04 · Audit</div>
+            <h3>Result + conflict signal</h3>
+            <p>Return the pooled estimate, covariance, and exact disagreement energy.</p>
+          </article>
+        </div>
+
+        <div class="contract-row" aria-label="Worker result contract fields">
+          <span class="contract-label">Worker result contract</span>
+          <span class="token">theta_hat</span>
+          <span class="token">info_per_obs</span>
+          <span class="token">n</span>
+          <span class="token">lineage[]</span>
+          <span class="token">evidence_ids[]</span>
+          <span class="token">metadata{}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="value-section">
+      <div class="wrap value-grid">
+        <div class="value-statement">
+          <p class="section-label">Why this is valuable</p>
+          <h2>Not a smarter vote. A more honest interface.</h2>
+          <p class="lead">The reducer becomes useful because it preserves three facts that a mean or majority vote cannot express.</p>
+        </div>
+        <div class="value-cards">
+          <article class="value-card">
+            <div class="value-number">01</div>
+            <div><h3>Evidence earns weight</h3><p>A precise estimate contributes more than a noisy one through total precision <code>Pₖ = nₖJₖ</code>—not through worker identity or verbal confidence.</p></div>
+          </article>
+          <article class="value-card">
+            <div class="value-number">02</div>
+            <div><h3>Merging scales as a tree</h3><p>The canonical summary is associative and commutative. Reduce locally, stream incrementally, or combine across a fanout tree without changing the answer.</p></div>
+          </article>
+          <article class="value-card">
+            <div class="value-number">03</div>
+            <div><h3>Conflict stays visible</h3><p>The product normalizer contains a disagreement term. Confident workers that point in different directions leave an explicit audit signal.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="boundary" id="boundary">
+      <div class="wrap">
+        <p class="section-label">The scientific boundary</p>
+        <h2>Isolation makes workers separate. It does not make their evidence independent.</h2>
+        <p class="lead">This distinction is the most important part of the paper. Multiplication is justified only when workers estimate the same target from independent, non-overlapping evidence.</p>
+        <div class="boundary-grid">
+          <article class="boundary-card good">
+            <div class="boundary-icon" aria-hidden="true">✓</div>
+            <h3>Use it when</h3>
+            <p>Worker summaries have a defensible uncertainty model and genuinely distinct evidence.</p>
+            <ul class="boundary-list">
+              <li>One shared parameter and compatible units</li>
+              <li>Disjoint evidence or explicitly modeled dependence</li>
+              <li>Valid Gaussian or local-asymptotic approximation</li>
+            </ul>
+          </article>
+          <article class="boundary-card bad">
+            <div class="boundary-icon" aria-hidden="true">×</div>
+            <h3>Do not use it as</h3>
+            <p>A generic trust score for correlated agents, adversarial workers, or different local truths.</p>
+            <ul class="boundary-list">
+              <li>Self-reported model confidence</li>
+              <li>An automatic Byzantine defense</li>
+              <li>Proof that separate sandboxes are independent</li>
+            </ul>
+          </article>
+        </div>
+        <div class="warning-band"><strong>Core warning</strong><span>Shared prompts, models, repositories, tests, or fork ancestors create common-mode error. Provenance is necessary; it is not yet a complete correlation model.</span></div>
+      </div>
+    </section>
+
+    <section class="evidence" id="evidence">
+      <div class="wrap evidence-top">
+        <figure class="published-figure">
+          <img src="./fig_gibbs.png" alt="Information-weighted Gaussian worker factors and their pooled estimate">
+          <figcaption>Published synthetic illustration: narrower Gaussian factors carry more information, and their product is sharper. This visualizes established precision pooling; it is not evidence of a new estimator.</figcaption>
+        </figure>
+        <div class="evidence-copy">
+          <p class="section-label">Auditable artifact</p>
+          <h2>Small enough to inspect. Complete enough to rerun.</h2>
+          <p>The repository checks the Gaussian algebra, exact normalizer, hierarchical merge, schema, overlap guard, and three deterministic statistical paths. Platform logs are execution observations—not a cross-provider benchmark.</p>
+          <div class="fact-list">
+            <div class="fact"><strong>Mean</strong><span>Information-pooled 4.9542 versus centralized 4.9546 on twelve synthetic shards.</span></div>
+            <div class="fact"><strong>0.033</strong><span>Coefficient gap to centralized OLS in the committed linear-regression sanity check.</span></div>
+            <div class="fact"><strong>8 seeds</strong><span>Unequal-size IID logistic check, with limitations stated alongside the result.</span></div>
+            <div class="fact"><strong>4 shards</strong><span>Named-snapshot islo execution path exercised end to end.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="citation" id="citation">
+      <div class="wrap citation-grid">
+        <div>
+          <p class="section-label">Citation</p>
+          <h2>Cite the published arXiv record.</h2>
+          <p class="citation-record"><cite>Yossi Eliaz. “Boltzmann MapReduce: A Partition-Function Reduce for Forkable Sandboxes.”</cite> arXiv:2607.09689 [cs.AI], 2026. <a href="https://doi.org/10.48550/arXiv.2607.09689">doi:10.48550/arXiv.2607.09689</a>.</p>
+          <p class="note"><strong>Version note:</strong> Citation metadata follows arXiv v1, submitted 17 June 2026. The repository PDF is the corrected revision and may differ in title and content from arXiv v1.</p>
+          <div class="actions">
+            <a class="button" href="https://arxiv.org/abs/2607.09689">Open arXiv record</a>
+            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read corrected PDF</a>
+          </div>
+        </div>
+        <div class="code-card" aria-label="BibTeX citation"><pre>@misc{eliaz2026boltzmann,
   title         = {Boltzmann MapReduce: A Partition-Function
                    Reduce for Forkable Sandboxes},
   author        = {Yossi Eliaz},
@@ -211,39 +944,175 @@
       </div>
     </section>
 
-    <section id="limits">
-      <div class="wrap">
-        <div class="eyebrow">Failure boundaries</div>
-        <h2>Isolation is not independence.</h2>
-        <div class="cards">
-          <article class="card"><h3>Duplicate evidence</h3><p>Multiplying overlapping factors double-counts information. The reducer rejects repeated non-empty evidence IDs; distinct IDs still do not prove independence.</p></article>
-          <article class="card"><h3>Different targets</h3><p>If workers estimate genuinely different local truths, a single common-parameter pool is misspecified. Use hierarchical or mixture models.</p></article>
-          <article class="card"><h3>Adversarial confidence</h3><p>A worker can fabricate both location and precision. The included cap is a transparent stress-test heuristic, not a security guarantee.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section id="artifact">
-      <div class="wrap split">
-        <div>
-          <div class="eyebrow">Reproduce locally</div>
-          <h2>One command path, auditable outputs.</h2>
-          <p>The reducer uses Cholesky solves, validates positive-definite information matrices, serializes provenance, and exposes disagreement energy. The full uv-locked command below verifies tests, package builds, every local path, and the PDF; the paper step requires <code>pdflatex</code> and <code>bibtex</code>.</p>
+    <section class="artifact" id="artifact">
+      <div class="wrap artifact-grid">
+        <div class="artifact-copy">
+          <p class="section-label">Reproduce locally</p>
+          <h2>One locked path from tests to paper.</h2>
+          <p>The complete workflow verifies Python tests, package builds, local demos, generated figures, the paper build, identical release PDFs, and the website contract.</p>
           <div class="actions">
-            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Open repository PDF</a>
-            <a class="button" href="https://github.com/zozo123/boltzmann-mapreduce">Source + logs</a>
+            <a class="button primary" href="https://github.com/zozo123/boltzmann-mapreduce">Explore the repository</a>
+            <a class="button" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Open repository PDF</a>
           </div>
         </div>
-        <div class="quickstart"><pre>git clone https://github.com/zozo123/boltzmann-mapreduce
-cd boltzmann-mapreduce
-uv sync --locked
-uv run --locked python scripts/verify_e2e.py</pre></div>
+        <div class="terminal" aria-label="End-to-end verification commands">
+          <div class="terminal-head" aria-hidden="true"><i></i><i></i><i></i></div>
+          <pre><span class="prompt">$</span> git clone https://github.com/zozo123/boltzmann-mapreduce
+<span class="prompt">$</span> cd boltzmann-mapreduce
+<span class="prompt">$</span> uv sync --locked
+<span class="prompt">$</span> uv run --locked python scripts/verify_e2e.py
+
+<span class="prompt">✓</span> Python · package · demos · paper · website</pre>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer class="wrap">
-    <strong>Scope:</strong> an honest, executable interface for uncertainty-aware reduction - not a new pooling estimator, a Byzantine theorem, or a cross-provider performance benchmark.
+  <footer>
+    <div class="wrap footer-grid">
+      <span><strong>Boltzmann MapReduce</strong> · An honest interface for uncertainty-aware reduction.</span>
+      <div class="footer-links">
+        <a href="https://github.com/zozo123/boltzmann-mapreduce">GitHub</a>
+        <a href="https://arxiv.org/abs/2607.09689">arXiv</a>
+        <a href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Corrected PDF</a>
+      </div>
+    </div>
   </footer>
+
+  <script>
+    (() => {
+      const scenarios = {
+        aligned: {
+          means: [4.88, 5.03, 4.96],
+          sigmas: [0.18, 0.10, 0.22],
+          label: "LOW",
+          caption: "Agreement makes the pooled factor sharper without moving it far. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence."
+        },
+        unequal: {
+          means: [4.72, 5.02, 5.19],
+          sigmas: [0.34, 0.08, 0.42],
+          label: "LOW",
+          caption: "The narrow blue factor carries more information, so it contributes more than the two noisier workers. Weight follows precision—not worker identity."
+        },
+        conflict: {
+          means: [4.66, 5.02, 5.48],
+          sigmas: [0.12, 0.10, 0.11],
+          label: "HIGH",
+          caption: "Confident disagreement can still produce a sharp pooled curve. The disagreement energy is the warning: concentration is not the same as consensus."
+        }
+      };
+
+      const canvas = document.getElementById("fusionChart");
+      const ctx = canvas.getContext("2d");
+      const buttons = [...document.querySelectorAll("[data-scenario]")];
+      const values = [...document.querySelectorAll("[data-worker-value]")];
+      const bars = [...document.querySelectorAll("[data-info-bar]")];
+      const pooledValue = document.getElementById("pooledValue");
+      const pooledUncertainty = document.getElementById("pooledUncertainty");
+      const disagreementValue = document.getElementById("disagreementValue");
+      const caption = document.getElementById("scenarioCaption");
+      let active = "aligned";
+
+      function calculate(data) {
+        const precision = data.sigmas.map(sigma => 1 / (sigma * sigma));
+        const total = precision.reduce((sum, value) => sum + value, 0);
+        const mean = data.means.reduce((sum, value, index) => sum + value * precision[index], 0) / total;
+        const sigma = Math.sqrt(1 / total);
+        const disagreement = 0.5 * data.means.reduce((sum, value, index) => sum + precision[index] * ((value - mean) ** 2), 0);
+        return { precision, total, mean, sigma, disagreement };
+      }
+
+      function gaussian(x, mean, sigma) {
+        return Math.exp(-0.5 * ((x - mean) / sigma) ** 2);
+      }
+
+      function draw() {
+        const data = scenarios[active];
+        const pooled = calculate(data);
+        const box = canvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.round(box.width * dpr));
+        canvas.height = Math.max(1, Math.round(box.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, box.width, box.height);
+
+        const left = 4;
+        const right = box.width - 4;
+        const baseline = box.height - 9;
+        const height = box.height - 20;
+        const minX = 4.3;
+        const maxX = 5.7;
+        const colors = ["rgba(125,240,183,.42)", "rgba(131,181,255,.46)", "rgba(246,185,95,.44)"];
+
+        ctx.strokeStyle = "rgba(255,255,255,.10)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(left, baseline + .5);
+        ctx.lineTo(right, baseline + .5);
+        ctx.stroke();
+
+        data.means.forEach((mean, index) => {
+          ctx.beginPath();
+          for (let px = left; px <= right; px += 1) {
+            const x = minX + ((px - left) / (right - left)) * (maxX - minX);
+            const y = baseline - gaussian(x, mean, data.sigmas[index]) * height * .58;
+            if (px === left) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+          }
+          ctx.strokeStyle = colors[index];
+          ctx.lineWidth = 1.35;
+          ctx.stroke();
+        });
+
+        const gradient = ctx.createLinearGradient(0, 0, box.width, 0);
+        gradient.addColorStop(0, "rgba(125,240,183,0)");
+        gradient.addColorStop(.5, "rgba(125,240,183,.18)");
+        gradient.addColorStop(1, "rgba(125,240,183,0)");
+        ctx.beginPath();
+        ctx.moveTo(left, baseline);
+        for (let px = left; px <= right; px += 1) {
+          const x = minX + ((px - left) / (right - left)) * (maxX - minX);
+          const y = baseline - gaussian(x, pooled.mean, pooled.sigma) * height * .88;
+          ctx.lineTo(px, y);
+        }
+        ctx.lineTo(right, baseline);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.beginPath();
+        for (let px = left; px <= right; px += 1) {
+          const x = minX + ((px - left) / (right - left)) * (maxX - minX);
+          const y = baseline - gaussian(x, pooled.mean, pooled.sigma) * height * .88;
+          if (px === left) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+        }
+        ctx.strokeStyle = "#7df0b7";
+        ctx.lineWidth = 2.2;
+        ctx.shadowColor = "rgba(125,240,183,.6)";
+        ctx.shadowBlur = 9;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      function render(name) {
+        active = name;
+        const data = scenarios[name];
+        const pooled = calculate(data);
+        const maxPrecision = Math.max(...pooled.precision);
+        values.forEach((element, index) => { element.textContent = data.means[index].toFixed(2); });
+        bars.forEach((element, index) => { element.style.width = `${Math.max(14, pooled.precision[index] / maxPrecision * 100)}%`; });
+        pooledValue.textContent = pooled.mean.toFixed(2);
+        pooledUncertainty.textContent = `± ${(1.96 * pooled.sigma).toFixed(2)}`;
+        disagreementValue.textContent = `${data.label} · ${pooled.disagreement.toFixed(2)}`;
+        disagreementValue.style.color = name === "conflict" ? "#f28b72" : "#7df0b7";
+        caption.textContent = data.caption;
+        buttons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.scenario === name)));
+        draw();
+      }
+
+      buttons.forEach(button => button.addEventListener("click", () => render(button.dataset.scenario)));
+      window.addEventListener("resize", draw, { passive: true });
+      render(active);
+    })();
+  </script>
 </body>
 </html>
