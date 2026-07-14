@@ -20,11 +20,11 @@ def fig_gibbs(cds: list[CD], pooled, oracle: CD, true_theta: float, path: str) -
     ax.plot([], [], color="0.7", lw=1.0, label=r"per-shard $h_k\propto e^{-\beta_k E_k}$ ($\beta_k=n_k$)")
     pooled_var = pooled.cov[0][0]
     pooled_d = np.exp(-0.5 * (grid - pooled.theta[0]) ** 2 / pooled_var) / np.sqrt(2 * np.pi * pooled_var)
-    ax.plot(grid, pooled_d, color="C0", lw=2.6, zorder=3, label="pooled (partition-function reduce)")
-    ax.plot(grid, oracle.density1d(grid), color="C3", lw=1.8, ls="--", zorder=2, label="full-data oracle")
+    ax.plot(grid, pooled_d, color="C0", lw=2.6, zorder=3, label="information-weighted product")
+    ax.plot(grid, oracle.density1d(grid), color="C3", lw=1.8, ls="--", zorder=2, label="full-sample estimate")
     ax.axvline(true_theta, color="k", lw=1.0, ls=":", label=r"true $\theta$")
     ax.set_xlabel(r"$\theta$"); ax.set_ylabel("confidence density")
-    ax.set_title("Reduce as Gibbs-factor product: many hot replicas cool into one sharp estimate")
+    ax.set_title("Independent Gaussian factors combine into a sharper product")
     ax.legend(fontsize=8, loc="upper right"); fig.tight_layout()
     fig.savefig(path, dpi=140); plt.close(fig)
     return path
@@ -48,7 +48,7 @@ def fig_cooling(cds: list[CD], path: str, seed: int = 0) -> str:
     ax.loglog(Ns, ref, "--", color="0.5", label=r"$\propto 1/\sqrt{N}$ reference")
     ax.set_xlabel("cumulative samples $N$ (shards accrued)")
     ax.set_ylabel("CI half-width")
-    ax.set_title(r"Cooling: effective temperature $T\propto 1/n \to 0$ as data accumulates")
+    ax.set_title(r"Concentration: interval width tracks $1/\sqrt{N}$")
     ax.legend(fontsize=9); fig.tight_layout()
     fig.savefig(path, dpi=140); plt.close(fig)
     return path
@@ -56,8 +56,8 @@ def fig_cooling(cds: list[CD], path: str, seed: int = 0) -> str:
 
 def fig_byzantine(true_theta: float, naive_pooled, robust_pooled,
                   liar_theta: float, path: str) -> str:
-    """Confident liar pulls naive pooling; the clip layer recovers the truth."""
-    labels = ["truth", "naive pooled\n(pulled)", "robust pooled\n(clipped)", "liar shard"]
+    """False-precision outlier pulls pooling; the heuristic limits its influence."""
+    labels = ["truth", "unprotected\npool", "bounded\nheuristic", "outlier"]
     vals = [true_theta, naive_pooled.theta[0], robust_pooled.theta[0], liar_theta]
     colors = ["k", "C3", "C0", "0.6"]
     fig, ax = plt.subplots(figsize=(7, 4.2))
@@ -67,6 +67,6 @@ def fig_byzantine(true_theta: float, naive_pooled, robust_pooled,
                 ha="center", va="bottom", fontsize=9)
     ax.axhline(true_theta, color="k", lw=0.8, ls=":")
     ax.set_ylabel(r"estimated $\theta$")
-    ax.set_title("Precision-weighted pooling is not Byzantine-robust; clipping bounds the liar")
+    ax.set_title("Precision pooling is non-robust; a heuristic limits this stress test")
     fig.tight_layout(); fig.savefig(path, dpi=140); plt.close(fig)
     return path

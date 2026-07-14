@@ -1,7 +1,9 @@
-"""Fanout sweep on Daytona: create N sandboxes (concurrency-capped), run a
-trivial command in each, measure per-fork create + dispatch latency and
-throughput, scale the ladder toward 1024. Daytona is a second forkable-sandbox
-cloud (cf. islo); this gives a cross-platform fanout curve.
+"""Sandbox-creation sweep on Daytona.
+
+Creates N default sandboxes under a concurrency cap, runs a trivial command in
+each, and measures create and round-trip latency. Unlike the islo backend, this
+script does not restore a named shared snapshot; its results must not be labeled
+as snapshot-fork measurements.
 
 Setup: `uv pip install daytona` and export DAYTONA_API_KEY (never hard-coded or committed).
 
@@ -28,7 +30,7 @@ def make_client():
     return Daytona(DaytonaConfig(api_key=key))
 
 
-def fork_once(client):
+def create_once(client):
     t0 = time.perf_counter()
     sb = None
     try:
@@ -54,7 +56,7 @@ def fork_once(client):
 def run_level(client, k, concurrency):
     t0 = time.perf_counter()
     with ThreadPoolExecutor(max_workers=concurrency) as ex:
-        res = list(ex.map(lambda _: fork_once(client), range(k)))
+        res = list(ex.map(lambda _: create_once(client), range(k)))
     total = time.perf_counter() - t0
     ok = [r for r in res if r["ok"]]
     cw = np.array([r["create_s"] for r in ok]) if ok else np.array([0.0])
@@ -74,7 +76,7 @@ def main(argv):
     ladder = [int(x) for x in argv[1:]] or [4, 16, 64, 256, 1024]
     client = make_client()
     with open(LOG, "a") as fh:
-        hdr = (f"\n=== Daytona fanout sweep (concurrency={concurrency}, fork=create+exec+delete) ===\n"
+        hdr = (f"\n=== Daytona sandbox-create sweep (concurrency={concurrency}, create+exec+delete) ===\n"
                f"{'fanout':>7} {'ok':>6} {'succ%':>6} {'total_s':>9} {'sbx/s':>8} "
                f"{'create_p50':>11} {'create_p95':>11} {'wall_p50':>9}\n")
         fh.write(hdr); fh.flush(); print(hdr, end="")

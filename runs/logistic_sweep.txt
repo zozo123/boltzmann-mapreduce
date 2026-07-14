@@ -1,4 +1,4 @@
-Logistic heterogeneous sweep: pooled vs naive vs full-data oracle MLE
+Logistic unequal-size IID sweep: pooled vs naive vs full-data oracle MLE
 true beta=[0.5,-1.2,2.0], shard sizes=[2000,400,120,60,5000], 8 seeds
 
   seed 0: ||pool-oracle||=1.340e-02  ||naive-oracle||=0.307  ratio=23x

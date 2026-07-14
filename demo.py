@@ -1,10 +1,10 @@
 """Boltzmann MapReduce demo.
 
 Generates synthetic data with a known truth, shards it, maps each shard to a
-confidence density via the chosen backend, and reduces by partition-function
-pooling. Prints a per-shard table (with temperature T = 1/n), compares pooled vs
-the full-data oracle (efficiency recovered), optionally runs the Byzantine
-scenario, and saves three figures.
+confidence density via the chosen backend, and reduces by information-weighted
+pooling. Prints a per-shard table (with the T = 1/n convention), compares pooled
+vs the full-data estimator, optionally runs an outlier stress test, and saves
+three figures.
 
     python demo.py --scenario mean --byzantine
     python demo.py --scenario linreg --shards 16
@@ -26,7 +26,7 @@ from bmr import viz
 
 
 def make_mean_shards(rng, K, n, true_mu, sd=1.5):
-    """K homoscedastic shards centered at true_mu, with heterogeneous sizes n_k.
+    """K homoscedastic IID shards centered at true_mu, with unequal sizes n_k.
 
     Equal variance keeps the precision-weighted pool asymptotically equal to the
     full-data estimator (the efficiency ceiling); the varying n_k is what makes
@@ -36,7 +36,11 @@ def make_mean_shards(rng, K, n, true_mu, sd=1.5):
     for k in range(K):
         nk = int(rng.integers(max(20, n // 2), n * 2))
         x = rng.normal(true_mu, sd, size=nk)
-        shards.append({"scenario": "mean", "x": x.tolist(), "shard_id": k})
+        shards.append({
+            "scenario": "mean", "x": x.tolist(), "shard_id": k,
+            "lineage": ["demo-root", f"mean-branch:{k}"],
+            "evidence_ids": [f"mean-shard:{k}"],
+        })
         all_x.append(x)
     return shards, np.concatenate(all_x)
 
@@ -49,20 +53,28 @@ def make_linreg_shards(rng, K, n, true_beta):
         X = np.column_stack([np.ones(nk)] + [rng.normal(0, 1, nk) for _ in range(p - 1)])
         noise = rng.normal(0, float(rng.uniform(0.5, 2.0)), nk)
         y = X @ np.asarray(true_beta) + noise
-        shards.append({"scenario": "linreg", "X": X.tolist(), "y": y.tolist(), "shard_id": k})
+        shards.append({
+            "scenario": "linreg", "X": X.tolist(), "y": y.tolist(), "shard_id": k,
+            "lineage": ["demo-root", f"linreg-branch:{k}"],
+            "evidence_ids": [f"linreg-shard:{k}"],
+        })
         Xs.append(X); ys.append(y)
     return shards, np.vstack(Xs), np.concatenate(ys)
 
 
 def make_logistic_shards(rng, true_beta, sizes):
-    """Strongly heterogeneous logistic shards --- the informative, non-linear regime."""
+    """Strongly unequal-size IID logistic shards for a non-linear sanity check."""
     p = len(true_beta)
     shards, Xs, ys = [], [], []
     for k, nk in enumerate(sizes):
         X = np.column_stack([np.ones(nk)] + [rng.normal(0, 1, nk) for _ in range(p - 1)])
         prob = 1.0 / (1.0 + np.exp(-(X @ np.asarray(true_beta))))
         y = (rng.uniform(size=nk) < prob).astype(float)
-        shards.append({"scenario": "logistic", "X": X.tolist(), "y": y.tolist(), "shard_id": k})
+        shards.append({
+            "scenario": "logistic", "X": X.tolist(), "y": y.tolist(), "shard_id": k,
+            "lineage": ["demo-root", f"logistic-branch:{k}"],
+            "evidence_ids": [f"logistic-shard:{k}"],
+        })
         Xs.append(X); ys.append(y)
     return shards, np.vstack(Xs), np.concatenate(ys)
 
@@ -81,7 +93,7 @@ def run(args):
         oracle = oracle_mean(all_x)
     elif args.scenario == "logistic":
         true_beta = [0.5, -1.2, 2.0]
-        sizes = [2000, 400, 120, 60, 5000]  # strongly heterogeneous (informative regime)
+        sizes = [2000, 400, 120, 60, 5000]  # strongly unequal IID shard sizes
         shards, allX, ally = make_logistic_shards(rng, true_beta, sizes)
         oracle = oracle_logistic(allX, ally)
     else:
@@ -119,7 +131,7 @@ def run(args):
         (olo, ohi) = oracle.ci()[0]
         print(f"  ORACLE theta    = {oracle.theta_hat[0]:.4f}   95% CI = [{olo:.4f}, {ohi:.4f}]")
         print(f"  |pooled-oracle| = {abs(pooled.theta[0]-oracle.theta_hat[0]):.2e}  "
-              f"(asymptotically equivalent; reduce recovers full-data efficiency)")
+              f"(one deterministic sanity check; not an efficiency estimate)")
         viz.fig_gibbs(cds, pooled, oracle, true_theta, os.path.join(args.out, "fig_gibbs.png"))
         viz.fig_cooling(cds, os.path.join(args.out, "fig_cooling.png"), seed=args.seed)
     else:
@@ -127,14 +139,14 @@ def run(args):
         print(f"  POOLED beta   = {_fmt_vec(pooled.theta)}")
         print(f"  ORACLE beta   = {_fmt_vec(oracle.theta_hat)}")
         pooled_err = float(np.linalg.norm(np.array(pooled.theta) - np.array(oracle.theta_hat)))
-        print(f"  ||pooled-oracle||  = {pooled_err:.2e}  (precision-weighted; recovers oracle)")
+        print(f"  ||pooled-full||    = {pooled_err:.2e}  (information-weighted sanity check)")
         if args.scenario == "logistic":
             naive = reduce_naive(cds)
             naive_err = float(np.linalg.norm(naive - np.array(oracle.theta_hat)))
             print(f"  NAIVE  beta   = {_fmt_vec(naive)}  (equal-weight average)")
             print(f"  ||naive-oracle||   = {naive_err:.3f}  --> naive is "
                   f"{naive_err/max(pooled_err,1e-12):.0f}x worse "
-                  f"(non-linear, heterogeneous: the informative regime)")
+                  f"(non-linear, unequal-size IID shards)")
 
     if args.byzantine and args.scenario == "mean":
         liar_theta = true_theta + 12.0
@@ -145,10 +157,10 @@ def run(args):
         kept, flagged = byzantine_clip(attacked, kappa=3.0)
         robust = reduce_partition(kept)
         print("-" * 74)
-        print("  BYZANTINE: one confident liar injected "
+        print("  OUTLIER STRESS TEST: one false-precision worker injected "
               f"(theta={liar_theta:.1f}, falsely tiny variance)")
-        print(f"    naive  pooled = {naive.theta[0]:.4f}   (pulled toward the liar)")
-        print(f"    robust pooled = {robust.theta[0]:.4f}   (clip recovers; flagged={flagged})")
+        print(f"    naive  pooled = {naive.theta[0]:.4f}   (pulled toward the injected worker)")
+        print(f"    bounded pool  = {robust.theta[0]:.4f}   (heuristic; flagged={flagged})")
         viz.fig_byzantine(true_theta, naive, robust, liar_theta,
                           os.path.join(args.out, "fig_byzantine.png"))
 

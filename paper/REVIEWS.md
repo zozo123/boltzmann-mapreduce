@@ -1,36 +1,44 @@
-# Traffic-light reviews
+# Review history and revision decisions
 
-The concise paper was hardened by five expert-persona reviews. All returned
-**🟡 yellow** (accept with fixes); every blocking issue below was applied.
+## Revision standard
 
-| Reviewer (lens) | Verdict | Headline blocking issue (fixed) |
+The current paper was rewritten against four demanding review lenses: distributed
+systems, mathematical statistics, agent research, and adversarial robustness. The goal
+was not to make every dimension look complete; it was to make every claim traceable to
+the artifact or explicitly mark it as a research agenda.
+
+| Lens | Blocking concern | Revision |
 |---|---|---|
-| **Jeff Dean** — distributed systems at scale | 🟡 | Number provenance mismatched; KVM-isolation vs nanosecond-IPC contradiction; novelty over-claimed vs parameter servers / one-shot estimation / bag-of-little-bootstraps |
-| **Mathematical statistician** (Efron/Reid/Meng) | 🟡 | Efficiency overclaim — Rao-CD *recovers*, never *exceeds*, the full-data oracle; `J` must be per-observation for `β=n`; `exactly` → `to leading order under LAN` |
-| **OS / virtualization** | 🟡 | It's a snapshot/UFFD restore, **not** a `fork()` of a live parent; the 2× single-address-space throughput claim was uncited |
-| **ML-security / federated learning** | 🟡 | Precision-weighted pooling is **not** Byzantine-robust (confident liar gets *more* weight); SHAP is attribution, not a defense; FLAME comparison not head-to-head |
-| **Scientific-writing / integrity editor** | 🟡 | Several figures read as original measurements; stripped false-precision table numbers; framed all numbers as projected/illustrative |
+| Distributed systems | MapReduce mischaracterized; no controlled substrate comparison | Reduce is correctly described as user-defined; cloud operations and timing boundaries are separated |
+| Statistical novelty | Rao-CD and inverse-information pooling predate the work | Prior work is credited in the abstract, introduction, theory, and bibliography |
+| Mathematical correctness | Exactness too broad; partition normalizer incomplete | Exactness narrowed; full disagreement term derived, implemented, and tested |
+| Robustness | Exponential suppression claim false; scalar clip missed other coordinates | Claim removed; multivariate heuristic added and explicitly scoped as non-certified |
+| Heterogeneity | Unequal shard sizes presented as non-IID heterogeneity | Renamed unequal-size IID; common-target assumption made explicit |
+| Systems evidence | Daytona/Tensorlake creates labeled snapshot forks; islo rounded to 100% | Operations corrected; islo reported as 255/256; batched totals distinguished from concurrency |
+| Local backend | Process pool described as guaranteed `fork()`/CoW | Wording corrected; no CoW claim |
+| Agent relevance | Fork isolation treated as statistical independence | Literal evidence reuse is rejected; lineage is preserved; correlation-aware reduction remains future work |
+| Artifact/API | Associativity stated but only a flat loop exposed | Public canonical summary, tree merge, finalization, and associativity test added |
+| Reproducibility | No automated verification | CI now tests two Python versions and rebuilds the paper |
 
-## Key changes applied
+## Claims intentionally removed
 
-- Removed every "improves on / exceeds the full-data benchmark" claim; reduce is now
-  stated as asymptotically first-order efficient, *recovering* the oracle, strictly
-  dominating only naive equal-weight pooling.
-- Defined `J_{n_k}` as per-observation (averaged) information so total precision is
-  `n_k J_{n_k}` and `β_k = n_k` is a genuine inverse temperature.
-- Softened the Gibbs identity to leading-order/LAN (exact only in the Gaussian case).
-- Rewrote the microVM clone path as snapshot + UFFD demand paging, not a live `fork()`.
-- Scoped the nanosecond zero-copy hand-off to a co-located single-address-space tier that
-  trades the KVM boundary for software-fault isolation (with the side-channel cost noted).
-- Reframed the robustness story: thermal suppression handles honest outliers; a separate
-  detection layer is required for confident adversaries.
-- Reframed both tables as illustrative design-target profiles; stripped false precision;
-  added real prior-art citations (parameter server, Zhang–Duchi–Wainwright, CSL,
-  bag-of-little-bootstraps, Faasm, Morph).
+- A new statistical estimator or identity.
+- Robustness through "Boltzmann suppression."
+- A Byzantine defense or accuracy target.
+- Three-cloud shared-snapshot equivalence.
+- Single-digit microVM restore projections.
+- Full-data efficiency based on one point-estimate gap.
+- A measured AI-agent or software-engineering result.
 
-## Residual risks (carried forward in `PLAN.md`)
+## Remaining limitations
 
-- Robustness/latency numbers remain projections, not experiments.
-- The Gibbs identity is leading-order only.
-- The Shapley detection layer is an unvalidated heuristic.
-- Consistency assumes a common parameter `θ_0` across shards.
+- No repeated-sampling coverage study or serious distributed-inference baseline suite.
+- No genuine non-IID/random-effects evaluation.
+- No controlled process/container/cold-VM/snapshot benchmark.
+- No formal robust-aggregation guarantee.
+- Lineage fields are transported but not yet used in a correlation model; distinct
+  evidence IDs are not proof of independence.
+- Only one named-snapshot end-to-end statistical execution is committed.
+
+These limitations are now part of the paper's scientific boundary rather than being
+hidden behind projected tables.

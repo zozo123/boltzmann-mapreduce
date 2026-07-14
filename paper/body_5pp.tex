@@ -1,166 +1,171 @@
 \begin{abstract}
-To leading order under local asymptotic normality (LAN), the confidence density a worker emits over a chunk of size $n$ is a Gibbs--Boltzmann measure $\exp\{-\beta E(\theta)\}$ whose inverse temperature is the sample size, $\beta=n$. Three consequences are exact in the Gaussian/linear case and first-order otherwise: disjoint chunks carry independent Boltzmann factors, so the MapReduce \emph{reduce}, read literally, is a partition function $Z=\int\prod_k h_k\,d\theta$ whose mode is precision-weighted (inverse-variance) pooling; frequentist consistency is the zero-temperature limit $T=1/n\to0$; and the same precision weighting gives pooling an unbounded influence function, so a single ``cold'' liar reporting false precision hijacks the consensus unless an explicit clip is added. This matters now because the commodity machine of the AI era is the forkable copy-on-write microVM sandbox. When the unit of execution is a forked ensemble rather than a deterministic path, the reduce should equilibrate that ensemble, not average it. We \emph{measure} the statistical core on an open, deterministic (seed~$0$) reference implementation: the partition-function reduce equals closed-form inverse-variance pooling to machine precision (an algebraic check); the pooled estimate tracks the full-data oracle to a sampling gap of $4.3\times10^{-4}$ on a $12$-shard mean; the temperature cools as $1/\sqrt{N}$; a confident liar pulls the naive pool to $17.0$ while the clip recovers $4.95$ and flags it; and on a non-linear, heterogeneous logistic estimator the precision-weighted reduce recovers the full-data MLE while naive equal-weight averaging is $\approx\!24\times$ worse (mean over $8$ seeds). A seven-case \texttt{pytest} suite spanning all experiments passes. We additionally \emph{run} the pipeline end-to-end on the islo forkable-sandbox cloud (one trial): a distinct four-shard configuration forked from a $141$\,MB OCI snapshot, each shard computing its density on a separate microVM, reduces to $4.942$ versus an oracle $4.945$---a substrate existence proof (for a fixed shard set and seed the deterministic workers make islo and local outputs identical), and by batching under each account's concurrency cap we fork to $256$--$1024$ total sandboxes at $100\%$ success across \emph{three} real forkable-sandbox clouds---islo, Daytona, and Tensorlake (create $p_{50}$ spanning $0.20$--$6.9$\,s). Per-restore microVM latency and large-scale Byzantine accuracy remain \emph{projections} from published figures, labeled throughout. Artifact: \url{https://github.com/zozo123/boltzmann-mapreduce}.
+Forkable sandboxes make it inexpensive to execute many isolated workers, but isolation does not determine how their noisy outputs should be combined. We present an \emph{uncertainty-aware reduction contract}: a worker returns an estimate, per-observation information, sample size, and provenance fields rather than an unexplained scalar. For disjoint evidence about a common parameter, established confidence-distribution pooling combines the resulting Gaussian natural parameters. Under local asymptotic normality this factor can be written as a Gibbs measure $\exp\{-\beta E(\theta)\}$ with $\beta=n$ when energy is defined per observation. The thermodynamic form is an interpretation, not a new estimator; its useful content is total precision $nJ$, an associative merge, and an exact product normalizer whose disagreement term exposes worker conflict. A public artifact validates the Gaussian algebra, the normalizer, schema and overlap checks, an unequal-size IID logistic sanity check, and a scale-aware multivariate outlier heuristic. One four-shard run restores workers from a named islo snapshot and executes the pipeline end to end. Separate Daytona and Tensorlake measurements cover default sandbox creation, not snapshot restore. We state the boundary explicitly: multiplying factors assumes independent, non-overlapping evidence and a common target; the included outlier heuristic is not a Byzantine guarantee; and forked AI agents may be correlated and miscalibrated. We therefore frame lineage- and evidence-aware reduction as the systems research agenda opened by this interface. Artifact: \url{https://github.com/zozo123/boltzmann-mapreduce}.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
 
-MapReduce did not win on cleverness; it won on fit. Dean and Ghemawat matched a two-primitive model to the commodity machine of their era---the cheap, individually unreliable PC, racked by the thousand---and let the runtime absorb partitioning, scheduling, failure, and communication~\cite{dean2004mapreduce}. The abstraction was canonical because the substrate was: when the unit of hardware is a slow-booting, shared-nothing box, you \emph{reduce} by summing, counting, and concatenating across them. The arithmetic reduce was a faithful image of the machine beneath it.
+MapReduce succeeded because a small user-defined interface let a runtime absorb partitioning, placement, retries, and communication~\cite{dean2004mapreduce}. Its reduce function is general: it can merge sufficient statistics, model parameters, or arbitrary values. The present problem is therefore not that MapReduce is restricted to arithmetic. It is that many parallel evaluation and agent pipelines still expose a scalar result while discarding how that result was produced, how uncertain it is, and whether it shares evidence with another worker.
 
-The commodity machine of the AI era is a different object. It is the forkable microVM sandbox: a parent boots once, warms its runtime, pauses, and is serialized to a snapshot---an OCI image of content-addressed, deduplicated layers~\cite{oci_imagespec}---after which children are cloned not by rebooting but by copy-on-write (CoW) demand paging, each child \texttt{mmap}ing the shared backing image and faulting in only the pages it touches~\cite{agache2020firecracker,linux_uffd,du2020catalyzer}. Forking a sandbox is now cheap enough to be a default for real work: running a test suite under many seeds, evaluating a coding agent across parallel rollouts, sweeping hyperparameters, benchmarking a model on sampled shards, or fanning an AI harness over branches of a decision tree to discard divergent ones~\cite{morph2024}. The map step---fork, run, isolate---is commoditized. The reduce step is not.
+Forkable sandboxes sharpen this problem. A warm environment can be snapshotted and restored into isolated children, making parallel tests, sampled evaluations, hyperparameter trials, and agent branches operationally convenient~\cite{agache2020firecracker,ustiugov2021reap,morph2024}. Yet a fork is an execution primitive, not an independence guarantee. Children can share model weights, prompts, repository state, tests, and an execution ancestor. Treating their outputs as independent votes can manufacture confidence from repeated versions of the same error.
 
-The trouble is that what these forks emit is noisy and uncertain: a pass rate over flaky tests, an eval score on a sampled suite, a coefficient with a standard error, an agent's success fraction over stochastic rollouts---each from a different amount of data, each deserving a different amount of trust. The inherited reduce averages and concatenates, discarding exactly the information the ensemble was created to expose: how much data each fork saw, how concentrated its estimate is, and whether one fork's confident-looking number should move the consensus at all. We argue the reduce over a forked ensemble should be statistical, and that the right statistics fall out of a single observation about what a fork emits.
+We ask a narrower systems question: \emph{what result type should a forked worker return so that a reducer can combine evidence without pretending that every output is equally informative?} Our answer is a \texttt{statistical\_result} carrying an estimate $\hat\theta_k$, per-observation information $J_k$, sample size $n_k$, execution metadata, evidence identifiers, and fork lineage. The artifact rejects literal evidence-ID reuse by default and preserves lineage; modeling residual correlation among related branches remains future work.
 
-\paragraph{The durable kernel.} Under LAN, the confidence density a worker emits over a chunk of size $n$ is, to leading order, a Gibbs--Boltzmann measure $h(\theta)\propto\exp\{-\beta E(\theta)\}$ in which the energy is the local quadratic loss and the inverse temperature is the sample size, $\beta=n$ (Eq.~\eqref{eq:confdens}, Eq.~\eqref{eq:beta}). A data-poor chunk is hot and diffuse; a data-rich chunk is cold and concentrated. What is empirically falsifiable here is the ratio structure (relative weights track $n_k$) and the cooling rate (width $\sim1/\sqrt{N}$); taking $\beta=n$ per observation is the natural convention that makes reduce a partition function. Because disjoint chunks are independent, their factors multiply, so reduce computes a partition function whose mode is precision-weighted pooling; consistency is the zero-temperature limit; and the precision weighting that makes pooling efficient also gives it an unbounded influence function, so a confident liar mandates an explicit clip.
-
-\paragraph{What is new.} The divide-and-conquer statistics already exist: parameter servers~\cite{li2014paramserver}, one-shot~\cite{zhang2013oneshot} and surrogate-likelihood estimation~\cite{jordan2019csl}, the bag-of-little-bootstraps~\cite{kleiner2014blb}, and confidence-distribution meta-analysis~\cite{xie2013confidence,singh2005combining}. Our reduce \emph{is} the Rao-type confidence-distribution (Rao-CD) pooling of Tang and Song~\cite{tang2020distributed}; the Gaussian confidence density is textbook LAN. We do not claim these. Our contribution is (i) naming the reduce as a partition function with $\beta=n$, which makes precision weighting, consistency, and outlier behavior a single thermodynamic statement rather than a family of weighting recipes; and, operationally, (ii) the observation that a cheap forking substrate makes the unit of work a per-shard \emph{ensemble} of forked replicas rather than one local estimate, and that an arithmetic reduce is no longer the faithful image of that machine.
+The statistical merge is established confidence-distribution and inverse-information pooling~\cite{singh2005combining,tang2020distributed,zhou2017raocd}. Under local asymptotic normality (LAN), a worker's quadratic confidence factor has the Gibbs form $\exp\{-\beta_k E_k(\theta)\}$ under the convention $\beta_k=n_k$. Calling the integral of the product a partition function gives a compact thermodynamic reading, but does not change the estimator. We use that reading to specify the interface, derive the exact Gaussian normalizer, separate concentration from robustness, and identify what must be added for forked agents.
 
 \noindent\textbf{Contributions.}
 \begin{itemize}
-  \item \textbf{Identity (proven).} The asymptotic confidence density is a Gibbs measure with $\beta=n$ (Eq.~\eqref{eq:confdens}, Eq.~\eqref{eq:beta}), recasting reduce as a partition-function product (Eq.~\eqref{eq:partition}) and consistency as the zero-temperature limit, exact under Gaussian/linear energy and first-order otherwise.
-  \item \textbf{Reduce (measured).} An open reference implementation: pooling equals closed-form inverse-variance pooling to machine precision; the pooled estimate recovers the full-data oracle; the temperature cools as $1/\sqrt{N}$; pooling is Byzantine-fragile but clip-repaired; and on a non-linear, heterogeneous logistic estimator pooling recovers the oracle MLE while naive averaging is markedly worse. One end-to-end run on a real forkable-sandbox cloud (islo).
-  \item \textbf{Substrate (enabling design).} Forkable CoW microVM sandboxes as the commodity machine that makes the forked ensemble the unit of execution, with a compact agentic control plane and a measured clip as its one validated robustness piece; per-restore latency and large-scale robustness are stated as labeled projections (Tables~\ref{tab:latency},~\ref{tab:robust}).
+  \item \textbf{Contract.} An uncertainty- and provenance-carrying worker result with an associative Gaussian canonical summary $(P,q,c,N)$, where $P=nJ$, $q=P\hat\theta$, and $c=\hat\theta^TP\hat\theta$.
+  \item \textbf{Interpretation and boundary.} A thermodynamic reading of established confidence-distribution pooling, including the exact disagreement contribution to the product normalizer and explicit assumptions on independence, common targets, dimension, and local asymptotics.
+  \item \textbf{Auditable artifact.} A deterministic reference implementation with validation, an associative hierarchical merge API, duplicate-evidence rejection, an exact normalizer, local statistical sanity checks, one named-snapshot islo execution, and carefully separated sandbox-creation observations on two other clouds.
+  \item \textbf{Research agenda.} Lineage-aware reduction for correlated agent branches, evidence-derived rather than self-reported confidence, and robust multivariate fusion under untrusted precision.
 \end{itemize}
 
-\section{Programming Model and Forkable-Sandbox Substrate}
+\section{Result Contract and Execution}
 \label{sec:model}
 
-The model keeps \texttt{map}/\texttt{reduce}~\cite{dean2004mapreduce} but makes estimates and their variances first-class. The user supplies two functions; forking, snapshotting, and metadata tracking are abstracted beneath them. \texttt{map} returns, per key, a \texttt{statistical\_result}: a point estimate (mean, regression coefficients, empirical CDF), an uncertainty measure (confidence interval, standard error, sandwich covariance~\cite{white1982sandwich}, or full confidence density), the local sample size $n$, and execution metadata. The implemented contract is two calls: a worker emits a confidence-density JSON $(\hat\theta_k, J_{n_k}, n_k)$, and \texttt{reduce\_partition} multiplies the Gibbs factors of Eq.~\eqref{eq:partition}---precision-weighted pooling---merging heterogeneous estimates without centralizing raw individual-participant data~\cite{singh2005combining,tang2020distributed}.
+\paragraph{Worker result.} Worker $k$ emits
+\begin{equation}
+r_k=(\hat\theta_k,J_k,n_k,\mathcal L_k,\mathcal E_k,m_k),
+\label{eq:contract}
+\end{equation}
+where $\mathcal L_k$ is fork lineage, $\mathcal E_k$ identifies underlying evidence, and $m_k$ records execution metadata. The reference JSON schema serializes these fields. At ingestion it rejects non-finite estimates, non-positive sample sizes, malformed provenance, inconsistent dimensions, and non-symmetric or non-positive-definite information matrices; merge rejects overlap among non-empty evidence IDs unless explicitly overridden. These checks establish structural validity and literal deduplication, not statistical independence or honesty.
 
-\paragraph{Worker substrate.} Three properties govern parallelism: instantiation speed, per-worker overhead, and isolation. Containers cold-start in $0.4$--$2$\,s with heavy memory overhead; V8 isolates boot sub-millisecond but cannot run the scientific Python stack. We use lightweight micro-virtualization with memory snapshotting on a minimal VMM such as Firecracker~\cite{agache2020firecracker}, KVM-isolated behind a restricted device model. A parent microVM boots once, warms its runtime, pauses, and is serialized to a snapshot whose information layer is an \emph{OCI image}: content-addressed base-OS, runtime, and user-code layers~\cite{oci_imagespec,du2020catalyzer} deduplicated and shared read-only across every fork, so a child is restored rather than rebuilt and only its writes diverge. Each child \texttt{mmap}s its guest memory \texttt{MAP\_PRIVATE} and is demand-paged on first touch via \texttt{userfaultfd}~\cite{linux_uffd} with working-set prefetch~\cite{ustiugov2021reap}; a write traps a fault and copies only that page into a per-child overlay, so shared base layers are never duplicated and disk growth is bounded as fanout rises---a CoW property our local backend exercises directly and the islo run of Sec.~\ref{sec:eval} exercises on a real cloud. \emph{Live branching} extends this to running workers: an active worker snapshots in-flight memory and forks a clone with a source-pause window on the order of tens of milliseconds (a reported $\sim$56\,ms on a $1.5$\,GiB source~\cite{morph2024}), the copy completing asynchronously---so an AI harness can fork at a decision node, test competing branches in parallel, and discard divergent ones. Commercial forkable-sandbox clouds (islo, Daytona~\cite{daytona2024}, Morph~\cite{morph2024}, Modal) expose this snapshot-and-fork primitive directly.
+For a $p$-dimensional Gaussian factor, define
+\begin{equation}
+P_k=n_kJ_k,\quad q_k=P_k\hat\theta_k,\quad
+c_k=\hat\theta_k^TP_k\hat\theta_k.
+\label{eq:canonical}
+\end{equation}
+Independent summaries merge by componentwise addition:
+\begin{equation}
+(P,q,c,N)=\bigoplus_k(P_k,q_k,c_k,n_k).
+\label{eq:merge}
+\end{equation}
+This operation is associative and commutative, so it can be reduced hierarchically. In more than one dimension there is generally no single scalar worker weight; information is directional. The artifact reports scalar weights only for $p=1$.
 
-\section{The Boltzmann Reduce}
+\paragraph{When not to use it.} Model-specific sufficient statistics are preferable when available. A mean is recovered exactly from $(\sum_i x_i,n)$, and ordinary least squares from $(X^TX,X^Ty)$. Our contract targets one-shot settings where workers expose estimates and uncertainty but raw data or exact sufficient statistics are unavailable, undesirable to transmit, or model-specific. It does not replace exact aggregation.
+
+\paragraph{Execution is orthogonal to inference.} The same contract can run over processes, containers, microVMs, or remote clients. The local backend uses Python's platform-dependent process pool and makes no copy-on-write claim. The islo backend builds one environment, saves a named snapshot, and restores one sandbox per shard. A committed four-shard run exercises that path. Daytona and Tensorlake scripts instead measure default sandbox create/run/delete operations; they do not restore the named islo snapshot and are not presented as equivalent restore measurements.
+
+Forking improves environment reuse and isolation, not statistical independence. Before multiplying two factors, a production reducer must inspect $\mathcal E_k$ and $\mathcal L_k$ for shared data, shared evaluation, or branch ancestry. The artifact blocks literal evidence-ID overlap, but deliberately refuses to treat distinct IDs or distinct sandboxes as proof of independence.
+
+\section{Statistical Foundation}
 \label{sec:boltzmann}
 
-When the data-generating density cannot be fully specified, inference uses \emph{estimating functions} built from partial aspects of the mechanism, such as moment conditions~\cite{godambe1960estimating}. A \emph{confidence distribution} is a frequentist, sample-dependent distribution encoding confidence intervals of all levels~\cite{xie2013confidence,singh2005combining}. Processing chunk $W^{(k)}$, a worker yields a confidence density $h_k(\theta)$. Under LAN,
-\begin{equation}
-n_k^{1/2}(\hat\theta_k-\theta_{k,0})\overset{\text{asy.}}{\sim}N\!\left(0,\,j_k^{-1}(\theta_{k,0})\right),
-\label{eq:asymp}
-\end{equation}
-with $j_k$ the per-observation sandwich (inverse Godambe) information~\cite{godambe1960estimating,white1982sandwich}. The confidence density is, to leading order,
-\begin{equation}
-h_k(\theta)\propto\exp\!\left\{-\tfrac{n_k}{2}(\hat\theta_k-\theta)^{T}J_{n_k}(\hat\theta_k)(\hat\theta_k-\theta)\right\},
-\label{eq:confdens}
-\end{equation}
-where $J_{n_k}$ estimates the per-observation information $j_k$, so chunk $k$ carries total precision $n_k J_{n_k}$. \textbf{Regime.} Under correct specification, $h_k=\exp\{-n_k E_k\}\,(1+O(n_k^{-1/2}))$; the Gibbs form is \emph{exact} iff the estimating function is linear in $\theta$ (Gaussian location, linear regression) and otherwise holds to $O(n_k^{-1/2})$ by Laplace approximation. Higher-order corrections (skewness, curvature) are exactly what a CD carries beyond first order and are dropped here.
+\paragraph{Prior work and scope.} Confidence distributions combine frequentist evidence from independent sources~\cite{singh2005combining,xie2013confidence}. Rao-type confidence-distribution (Rao-CD) methods place estimating-function inference directly in a MapReduce setting~\cite{zhou2017raocd}; related work gives distributed simultaneous inference for generalized linear models~\cite{tang2020distributed}. Our Gaussian merge is this established estimator.
 
-The reduce merges the independent densities via Rao-CD~\cite{tang2020distributed}, which generalizes MLE to robust estimating equations. With full data one would solve
+We assume: (i) disjoint, statistically independent evidence; (ii) a common parameter $\theta_0$ across workers; (iii) fixed $p$; (iv) positive-definite, consistently estimated information; and (v) local sample sizes large enough for LAN. Let $I_k$ denote limiting per-observation information and $J_k\overset{p}{\to}I_k$. For worker $k$,
 \begin{equation}
-\psi_{\text{full}}(W;\theta)=n^{-1}\sum_{i=1}^{n}\psi(W_i;\theta)=0.
-\label{eq:full}
+n_k^{1/2}(\hat\theta_k-\theta_0)
+\overset{d}{\longrightarrow}N(0,I_k^{-1}),
+\label{eq:lan}
 \end{equation}
-Since data cannot be centralized, reduce solves the combined equation for $\hat\theta_{\text{rcd}}$,
+and the leading quadratic confidence factor is
 \begin{equation}
-\Psi_R(\theta)=n^{-1/2}\sum_{k=1}^{K}n_k\,S_{n_k}^{T}(\theta)\,\hat V_{n_k}^{-1}\,\psi_{\text{sub}}^{(k)}(W^{(k)};\theta)=0,
-\label{eq:raocd}
+g_k(\theta)=\exp\!\left\{-\tfrac12
+(\theta-\hat\theta_k)^TP_k(\theta-\hat\theta_k)\right\}.
+\label{eq:factor}
 \end{equation}
-with $S_{n_k}(\theta)=-\dot\psi_{\text{sub}}^{(k)}(\theta)$ and $\hat V_{n_k}$ estimating the sub-estimating-function variance at $\hat\theta_k$. Solving $\Psi_R=0$ combines local \emph{scores}, whereas the mode of $\prod_k h_k$ averages local \emph{point estimates}; the two coincide exactly only under quadratic (Gaussian/linear) energy, where the score is linear in $\theta$, and otherwise to first order. Under correct specification and a common truth $\theta_{k,0}=\theta_0$, Rao-CD is asymptotically first-order efficient, \emph{recovering}---never exceeding---the infeasible full-data estimator, and dominating equal-weight pooling under heterogeneous information (strictly so when precisions differ; the two agree under equal $n_k$), connecting to GMM and quadratic estimating-function optimality~\cite{hansen1982gmm,crowder1987optimality}.
+This factor is exact for an exactly quadratic Gaussian model with the relevant covariance treated as known. A linear estimating equation alone is insufficient for finite-sample Gaussian exactness; plug-in nuisance estimates and non-Gaussian errors generally return us to asymptotics.
 
-\paragraph{The Gibbs view.} Writing the local quadratic loss as an energy,
+\paragraph{Product mode and normalizer.} Let $P=\sum_kP_k$, $q=\sum_kq_k$, and $c=\sum_kc_k$. Completing the square gives
 \begin{equation}
-E_k(\theta)=\tfrac{1}{2}(\hat\theta_k-\theta)^{T}J_{n_k}(\hat\theta_k)(\hat\theta_k-\theta),
-\label{eq:energy}
+\hat\theta=P^{-1}q,\qquad \mathrm{Cov}(\hat\theta)=P^{-1}.
+\label{eq:pool}
 \end{equation}
-Eq.~\eqref{eq:confdens} reads $h_k(\theta)\propto\exp\{-\beta_k E_k(\theta)\}$ with
+For the unnormalized factors in Eq.~\eqref{eq:factor}, the exact integral is
 \begin{equation}
-\beta_k=n_k.
-\label{eq:beta}
+Z_g=(2\pi)^{p/2}|P|^{-1/2}\exp(-\Delta/2),
+\quad \Delta=c-q^TP^{-1}q\ge0.
+\label{eq:normalizer}
 \end{equation}
-This is a normalization convention---energy defined \emph{per observation}---not a discovery: one could absorb $n_k$ into $J$ and set $\beta=1$. What is empirically falsifiable is the ratio structure (relative weights track $n_k$) and the cooling rate (width $\sim 1/\sqrt{N}$), not an absolute temperature scale. Under the per-observation convention, a data-poor chunk is hot and diffuse, a data-rich chunk cold and concentrated. For disjoint chunks the factors multiply and energies and inverse temperatures add:
+$\Delta/2$ is the minimum summed energy: it is zero when worker modes agree and increases as they conflict. The reference implementation exposes this \texttt{disagreement\_energy} and computes $-\log Z_g$ exactly. The scalar $Z_g$ itself changes with the parameterization's integration measure; under a common nonsingular linear reparameterization, $\Delta$ is invariant while $Z_g$ acquires the expected Jacobian. Normalizers should therefore be compared only under the same model and coordinates. If each local factor is normalized, its Gaussian normalization constants must additionally be included.
+
+\paragraph{Thermodynamic convention.} Writing
 \begin{equation}
-h(\theta)\propto\prod_{k=1}^{K}h_k(\theta)\propto\exp\!\Big\{-\sum_{k=1}^{K}\beta_k E_k(\theta)\Big\},
-\label{eq:partition}
+E_k(\theta)=\tfrac12(\theta-\hat\theta_k)^TJ_k(\theta-\hat\theta_k),
+\quad \beta_k=n_k,
+\label{eq:gibbs}
 \end{equation}
-with $Z=\int\prod_k h_k(\theta)\,d\theta$. (Additivity needs disjoint partitions; within-shard bootstrap replicas are not independent $\beta=n_k$ replicas and are not multiplied.) The mode minimizes $\sum_k\beta_k E_k$, i.e.\ precision-weighted pooling, since chunk $k$ enters with weight $\beta_k J_{n_k}$. \emph{Statistical optimality} is additivity of precisions under the product measure. \emph{Robustness to honest heterogeneity} is Boltzmann suppression: an honest outlier with modest reported precision is a high-energy, exponentially damped configuration. This is \emph{not} a Byzantine defense: an adversary reporting false high precision (falsely ``cold'') receives large weight and captures the consensus---precision-weighted pooling has an unbounded influence function---which is why the clip of Sec.~\ref{sec:orchestration} is mandatory. Separately, fix $K$ and let every $n_k\to\infty$ (so $N=\sum_k n_k\to\infty$); the per-observation temperature $1/n_k\to0$ and the measure concentrates by Laplace's method on the minimizer of the averaged energy, which is consistent for $\theta_0$ when the estimating function is unbiased with the usual regularity. \emph{Frequentist consistency is the zero-temperature limit.}
+gives $g_k=\exp\{-\beta_kE_k\}$. This separation is conventional: $n_k$ could be absorbed into $J_k$. The invariant statistical quantity is total precision $P_k=n_kJ_k$, not sample size alone. Thus ``hot'' and ``cold'' are useful shorthand only after fixing the per-observation energy convention. If $K$ grows while each $n_k$ remains fixed, local temperatures do not fall even though total precision can increase; one may instead define a global $\beta=N=\sum_kn_k$ and a weighted average energy.
 
-\section{Orchestration and Security (Design Sketch)}
-\label{sec:orchestration}
+\paragraph{Concentration is not robustness.} The pooled mode depends on worker $o$ through
+\begin{equation}
+\frac{\partial\hat\theta}{\partial\hat\theta_o}=P^{-1}P_o.
+\label{eq:influence}
+\end{equation}
+Low precision limits leverage, but the influence does not decay with distance: Gaussian precision pooling is unbounded in location, and false high precision adds a second attack surface. There is no ``Boltzmann suppression'' guarantee for an outlying mode.
 
-The master is replaced by a decentralized, durable agentic control plane (envisioned, not yet measured). The one piece validated below is its core mechanism: a median-absolute-deviation precision clip that caps a confident liar's reported precision and down-weights location outliers. The remaining design elements are unmeasured. A Command Center receives a high-level JobSpec and realizes it across an agent mesh of planning, execution, and scheduling agents that place work and bridge edge and serverless backends~\cite{mcmahan2017federated}. Agentic workflows break synchronous scheduling, so the control plane runs on durable execution: every hop is logged, an OOM kill or timeout triggers replay rather than a crash, and a failed map task is re-forked from the same base template; the durable log, sharded and replicated, is the component to scale at high fanout. Where a map and its reduce are co-located in a single-address-space tier, software-enforced isolation enables a zero-copy hand-off of the confidence density (reported single-system gains of over $2\times$~\cite{shillaker2020faasm} are a design target we do not reproduce). Because nodes span hybrid clouds, vTPM boot-integrity attestation anchors trust before a sandbox joins the mesh (boot integrity only, not statistical behavior), and dynamic information-flow control mitigates co-location side channels. For poisoning, where IID-based defenses such as Krum~\cite{blanchard2017krum} degrade under non-IID inputs, reduce agents may discard or clip implausibly precise updates; large-scale robustness is left to future evaluation.
+The artifact includes a transparent stress-test heuristic: precision volume is capped using median/MAD statistics on $p^{-1}\log|P_k|$, while multivariate locations receive a redescending weight after coordinate-wise median/MAD scaling. It catches attacks outside the first coordinate and is scale-aware, but it is not rotation invariant and has no Byzantine breakdown guarantee. We retain it as a failure demonstration, not a security result.
 
-\section{Evaluation}
+\section{Artifact Sanity Checks and Execution Observations}
 \label{sec:eval}
 
-We separate what we \emph{measured} from what we \emph{project}. The measurements (Sec.~\ref{sec:eval}A) are deterministic (seed~$0$), Python with only \texttt{numpy}/\texttt{matplotlib}, and reproduce bit-for-bit from the artifact. The projections (Sec.~\ref{sec:eval}B) are drawn from figures published for the cited systems and from stated design targets; no head-to-head experiment against the named baselines was run.
+All statistical inputs below are synthetic. ``Real'' refers only to execution on an allocated cloud sandbox. The experiments are deterministic sanity checks, not a comprehensive efficiency or coverage study.
 
-\subsection*{A. Measured: the Boltzmann reduce, on real runs}
+\begin{table}[t]
+\centering\footnotesize
+\caption{Committed statistical sanity checks. Gaps are distances to the centralized estimator on the same synthetic data, not estimates of repeated-sampling efficiency.}
+\label{tab:stats}
+\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.25\columnwidth}>{\raggedleft\arraybackslash}X>{\raggedleft\arraybackslash}p{0.34\columnwidth}@{}}
+\toprule
+Scenario & Info. pool & Centralized / baseline \\
+\midrule
+Mean, 12 shards & $4.9542$ & mean $4.9546$ \\
+Linear regression & gap $0.033$ & centralized OLS \\
+Logistic, 8 seeds & gap $0.0083\pm0.0042$ & equal avg. $0.177\pm0.090$ \\
+Scalar stress test & $4.9566$ after heuristic & attacked $17.0004$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-The implementation realizes Sec.~\ref{sec:model} directly: \texttt{map} emits $(\hat\theta_k,J_{n_k},n_k)$ and \texttt{reduce\_partition} multiplies the Gibbs factors of Eq.~\eqref{eq:partition}. Two backends sit behind one interface: a \textsc{local} backend that forks OS processes, and an \textsc{islo} backend that snapshots a parent microVM once (its environment a \texttt{uv}-locked Python) and forks one sandbox per shard via the \texttt{islo} CLI (\texttt{islo snapshot save bmr-base}; \texttt{islo use bmr-shard-$k$ -{}-snapshot bmr-base ...}). We verified that islo launches a Claude Code harness inside the fork; the deterministic numbers below come from a fixed worker invocation (\texttt{-{}- uv run python -m bmr.worker}) so the reduce is reproducible.
+\paragraph{Gaussian algebra.} Twelve homoscedastic mean shards have sizes $107$--$355$. The information pool is $4.9542$ with a Gaussian interval $[4.8980,5.0104]$, while the full sample mean is $4.9546$. The reducer matches closed-form inverse-variance pooling to machine precision. This is an algebraic test; $(\sum x,n)$ would recover the sample mean exactly. The same implementation produces a $0.033$ coefficient gap to centralized OLS, for which $(X^TX,X^Ty)$ is again an exact alternative.
 
-\paragraph{Pooling is the partition function (algebraic); efficiency is recovered (statistical).} On $12$ homoscedastic shards ($\mathrm{sd}=1.5$) with heterogeneous sizes $n_k\in[107,355]$ around $\theta=5.0$, the partition-function reduce yields $\hat\theta_{\text{pool}}=4.9542$, CI $[4.8980,5.0104]$, against a full-data oracle $4.9546$. Two distinct facts: reduce reproduces the closed-form inverse-variance pooled estimator to \emph{machine precision}---an algebraic check, since multiplying Gaussian factors \emph{is} that estimator---while the pooled estimator tracks the oracle to a \emph{sampling} gap $|\hat\theta_{\text{pool}}-\hat\theta_{\text{oracle}}|=4.29\times10^{-4}$, a finite-sample efficiency check, attaining the oracle ceiling without exceeding it. The per-shard weights track $n_k$ exactly as $\beta_k=n_k$ predicts: the largest shard ($n=355$) carries $12.6\%$ of the weight, the smallest ($n=107$) carries $3.6\%$. The same holds for a $12$-shard linear regression (true $\beta=[1.5,-2.0,0.75]$): pooled $[1.494,-1.983,0.748]$ versus oracle $[1.516,-1.966,0.730]$, $L_2$ gap $3.3\times10^{-2}$. The larger regression gap is finite-sample variation in the design-matrix information across shards, not a failure of the identity; both cases are exactly the linear regime where Eq.~\eqref{eq:confdens} is Gibbs-exact, so machine-precision agreement is expected, not surprising.
-
-\paragraph{The informative regime: non-linear and heterogeneous.} To test where the identity is only first-order, we run logistic regression---a non-linear estimating function---across five strongly heterogeneous shards ($n_k\in\{60,120,400,2000,5000\}$, true $\beta=[0.5,-1.2,2.0]$). Here the Gibbs energy is the leading-order LAN quadratic, not exact. Across $8$ seeds the precision-weighted reduce recovers the full-data maximum-likelihood estimator (pooled gap mean $8.3\times10^{-3}$, sd $4.2\times10^{-3}$), whereas \emph{naive equal-weight} averaging of the per-shard coefficients is mean $0.18$ away---$24\times$ worse on average (range $6$--$46\times$ over seeds, scaling with the spread of per-shard information). This is the non-confirmatory result: when shards disagree in size and information, the thermodynamic weight $\beta_k=n_k$ is what tracks the oracle, and the arithmetic average---MapReduce's inherited reduce---visibly fails.
+\paragraph{Unequal-size IID logistic shards.} Five shards of sizes $\{60,120,400,2000,5000\}$ share the same covariate and outcome mechanism. Across eight committed seeds, information pooling is $0.0083\pm0.0042$ from the centralized MLE; equal coefficient averaging is $0.177\pm0.090$ away. This checks the expected direction under severe size imbalance. It does not establish an advantage over sample-size weighting, Rao-CD, surrogate likelihood, or distributed Newton, and it is not a non-IID experiment.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figs/fig_gibbs.png}
-\caption{Per-shard Gibbs confidence densities (hot, data-poor replicas) collapse into the sharp pooled density obtained by the partition-function reduce of Eq.~\eqref{eq:partition}; with $\beta_k=n_k$, multiplying Boltzmann factors recovers the full-data oracle, which overlaps the pool. (Measured, seed~$0$.)}
+\caption{Synthetic one-dimensional Gaussian factors under the per-observation energy convention. Their product is sharper; its mode lies close to the centralized sample estimate. This is a visualization of established precision pooling, not evidence of a new estimator.}
 \label{fig:gibbs}
 \end{figure}
 
-\paragraph{Cooling.} As shards accrue, the pooled $95\%$ CI half-width shrinks while tracking the $1/\sqrt{N}$ reference in cumulative sample size $N$---the zero-temperature limit made concrete: $T\to0$ as data accrue.
+\paragraph{Outlier stress test.} One synthetic scalar worker reports a far location, fabricated sample size, and $50\times$ inflated precision. Unprotected pooling moves to $17.0004$; the heuristic flags and strongly downweights the worker, returning $4.9566$. The test demonstrates both the vulnerability and one narrow mitigation. It does not support claims about collusion, adaptive attacks, high-dimensional robustness, or a Byzantine fraction.
 
-\paragraph{Byzantine fragility, and the clip.} Adding to the $12$ honest shards a single confident liar ($\theta=17.0$, falsely tiny variance, $50\times$ inflated precision, fabricated $n=2000$), naive pooling is hijacked to $17.0004$---the unbounded influence function in action. The detection layer (\texttt{byzantine\_clip}, $\kappa=3$) caps the liar's reported precision at $\mathrm{median}+\kappa\cdot\mathrm{MAD}$; with its fabricated precision capped to the honest scale, its location no longer dominates and the reduce returns to $4.9542$, matching the clean $12$-shard pool, and the liar is flagged. Both halves hold on real data: pooling alone is not Byzantine-robust, and the clip recovers the truth. A seven-case \texttt{pytest} suite spanning all experiments locks these numbers: the algebraic identity, oracle tracking for mean and precision, regression recovery, clip-versus-liar, JSON round-trip of the Gibbs identity $\texttt{neg\_log\_density}(\theta)=\beta\cdot\texttt{energy}(\theta)$, and the heterogeneous logistic recovery.
-
-\paragraph{End-to-end on a real forkable-sandbox cloud.} We ran the full pipeline on the \textsc{islo} backend in a four-shard configuration: from a $141$\,MB uv-locked OCI parent snapshot we forked one sandbox per shard, each computing its confidence density on a separate microVM, reducing to a pooled mean of $4.942$ against a full-data oracle of $4.945$ (gap $2.9\times10^{-3}$; committed run log). Because the workers are deterministic and seed-pinned, for a \emph{fixed shard set and seed} the \textsc{islo} and \textsc{local} backends produce identical statistical output by construction (this scoping is why the four-shard islo pair differs from the $12$-shard headline run above); the islo trial therefore evidences that the snapshot-once/fork-per-shard \emph{substrate executes end-to-end}, not that islo yields a different number. Instrumenting the forks (\texttt{perf\_counter}, committed run log), each dispatched in $\approx\!6.7$\,s (min $6.67$, max $6.70$), with the four concurrent forks completing in $6.70$\,s total. These figures are the restore-plus-run-plus-capture round-trip dominated by client--cloud latency, \emph{not} the in-host restore (Sec.~\ref{sec:eval}B; see ``What we did not do'').
+\paragraph{Named-snapshot execution.} In one islo trial, a $141$\,MB locked parent environment was saved as a named snapshot and restored into four sandboxes. The workers returned a pooled synthetic mean $4.9422$ versus full-sample $4.9450$. Four concurrent restore-run-capture round trips completed in $6.70$\,s. Because the computation is seed-pinned, this is an execution-path existence proof rather than a statistical comparison of backends; it does not isolate in-host restore latency.
 
 \begin{table}[t]
-\centering\small
-\caption{Batched fanout from one OCI snapshot on three real forkable-sandbox clouds, concurrency held under each account's quota. All reach their total at $100\%$ success. ($\dagger$islo is round-trip-inclusive dispatch, not in-host create.)}
+\centering\footnotesize
+\caption{Platform-specific batched observations. Operations and timing boundaries differ, so rows are not a latency ranking. Success counts are batched totals, not simultaneous fanout.}
 \label{tab:fanout}
-\begin{tabular}{@{}lrrr@{}}
+\begin{tabularx}{\columnwidth}{@{}l>{\raggedright\arraybackslash}Xl>{\raggedright\arraybackslash}X@{}}
 \toprule
-Cloud & Max fanout & Create $p_{50}$ & Throughput \\
+Platform & Operation & Success & Reported $p_{50}$ \\
 \midrule
-Daytona~\cite{daytona2024} & $1024$ & $0.20$\,s & $5.4$/s \\
-Tensorlake & $256$ & $3.4$\,s & $0.7$/s \\
-islo & $256$ & $6.9$\,s$^\dagger$ & $1.1$/s \\
+Daytona & default create & $1024/1024$ & $0.20$\,s create \\
+Tensorlake & default create & $256/256$ & $3.44$\,s create \\
+islo & named restore+run & $255/256$ & $6.87$\,s round trip \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-\paragraph{Fanout, measured on three clouds.} Holding concurrency \emph{under} each account's cap and batching, we climb the total fanout from one OCI snapshot on three real forkable-sandbox clouds---\textsc{islo}, \textsc{Daytona}, and \textsc{Tensorlake} (Table~\ref{tab:fanout})---each reaching $256$--$1024$ total forks at $100\%$ success. Two things stand out. First, per-fork \emph{create} latency spans nearly two orders of magnitude across platforms exposing the \emph{same} snapshot-and-fork abstraction ($0.20$\,s on Daytona to ${\approx}6.9$\,s round-trip on islo): ``forkable sandbox'' is one interface but many performance classes. Second, on Daytona create latency is \emph{flat} from $64$ to $1024$ forks---per-fork cost stays bounded as fanout rises. Concurrency itself is account-quota-capped (${\sim}16$--$32$ islo, $10$ Daytona, $8$ Tensorlake here), so high total fanout comes from batching under the cap, not raw concurrency---a tier limit, not an architectural one. The \emph{statistical} ensemble scales identically in the abstract: local process-fork fanout to $K=1024$ shrinks the pooled $95\%$ CI half-width from $0.079$ ($K{=}16$) to $0.0102$ ($K{=}1024$)---the $1/\sqrt{K}$ cooling of $\beta=n$---with the pooled mean within $2.1\times10^{-3}$ of the truth (committed run logs).
+\paragraph{Batched platform observations.} Under account concurrency caps, separate scripts completed 1024 Daytona default creates, 256 Tensorlake default creates, and 255 of 256 islo named-snapshot restore/run operations. These observations establish API reachability and bounded-throughput batches only. They do not compare identical images, working sets, or timing boundaries, and they do not demonstrate 256--1024 concurrent sandboxes.
 
-\subsection*{B. Projected: latency and large-scale robustness}
+\section{Failure Boundaries and Agenda}
+\label{sec:agenda}
 
-\paragraph{Forking latency.} Our CoW microVM substrate recovers polyglot, KVM-enforced isolation within single-digit milliseconds of isolate-class restore. With snapshot layering and UFFD prefetch~\cite{agache2020firecracker,du2020catalyzer,ustiugov2021reap}, published figures suggest low-millisecond restores for a small ($\sim$64\,MB) working set; a warmed NumPy/PyTorch runtime faults in far more and will exceed this range. Sub-$20$\,ms p99 dispatch assumes a warm-pool hit; a cold miss degrades to the $100$--$150$\,ms cold-start row. These caveats hold for the whole row; we do not re-litigate them below.
+\paragraph{Dependence and double counting.} Multiplication is invalid when factors reuse observations or share correlated noise. Forked agents are especially problematic: identical model weights, prompts, tests, tools, and ancestors create common-mode errors. The implementation rejects literal evidence-ID reuse; lineage should parameterize or bound residual correlation. A useful next reducer would operate on a fork DAG and combine factors conditionally rather than treating leaves as IID.
 
-\begin{table*}[t]
-\centering
-\caption{\emph{Projected} latency/isolation/density across serverless environments (figures from published systems; the microVM restore column assumes a small $\sim$64\,MB working set under UFFD prefetch, not full-image fault-in, and the p99 assumes a warm-pool hit).}
-\label{tab:latency}
-\begin{tabularx}{\textwidth}{@{}l *{5}{>{\raggedright\arraybackslash}X}@{}}
-\toprule
-Execution Environment & Typical Cold Start & Snapshot Restore (small w.s., \emph{proj.}) & Language Support & Isolation Depth & Memory Footprint \\
-\midrule
-Traditional Container & 400ms--2000ms & N/A & Polyglot & OS-Level (cgroups) & $>100$ MB \\
-V8 JavaScript Isolate & $<1$ms & $<1$ms & JS / WASM only & Application-Level & $\sim 3$ MB \\
-CoW MicroVM (Firecracker + UFFD) & 100ms--150ms & 3ms--8ms \emph{(proj.)} & Polyglot & Hardware/KVM & $\sim 64$ MB \\
-\bottomrule
-\end{tabularx}
-\end{table*}
+\paragraph{Different local truths.} The common-$\theta_0$ assumption makes this a fixed-effect reducer. Under site-specific truths, $P^{-1}$ ignores between-worker variation and can be severely overconfident. Random-effects or hierarchical confidence distributions are required before claiming robustness to genuine non-IID data.
 
-\paragraph{Large-scale Byzantine robustness.} Under a threat model of up to a $30\%$ fraction of non-colluding Byzantine workers, our design target is mid-90\% accuracy with roughly one-third lower communication than IID-robust baselines, stemming from transmitting condensed confidence densities rather than raw data. This is a \emph{design target, not a measurement}: we present published Krum/FLAME numbers (Table~\ref{tab:robust}) only as context, on intrusion-detection benchmarks (Edge-IIoTset, CIC-IDS2017, UNSW-NB15) whose protocol and threat model differ from CD aggregation, and we deliberately omit a projected row from the table to avoid implying a head-to-head win we did not run.
+\paragraph{Agent confidence.} A model's verbal confidence is not a calibrated standard error. For agent workloads, $J_k$ should be derived from external evidence: repeated tests, held-out evaluations, independent verifiers, or empirically calibrated outcome models. Adaptive branch selection further introduces winner's-curse bias; the reducer must know which evidence was used to select survivors.
 
-\begin{table*}[t]
-\centering
-\caption{Published Byzantine-robustness figures for Krum/FLAME on intrusion-detection benchmarks, shown \emph{as context only}. Our mid-90\% accuracy at a $30\%$ Byzantine fraction with $\sim$1/3 lower communication is a stated \emph{design target}, not a measurement, and is intentionally not tabulated alongside these rows.}
-\label{tab:robust}
-\begin{tabularx}{\textwidth}{@{}l *{4}{>{\raggedright\arraybackslash}X}@{}}
-\toprule
-Defense Mechanism & Clean Accuracy & Accuracy under 30\% Byzantine fraction & Adversarial Robustness & Comm.\ Overhead Reduction \\
-\midrule
-Krum~\cite{blanchard2017krum} (published) & 92\% & 72\% & Low & --- \\
-FLAME~\cite{nguyen2022flame} (published) & 95\% & 90\% & Moderate & 12\% \\
-\bottomrule
-\end{tabularx}
-\end{table*}
+\paragraph{Systems evaluation.} The artifact does not establish a snapshot advantage over processes, containers, or cold microVMs. A full systems evaluation must run an identical workload and image across backends; measure concurrent fanout, warm-hit rate, page faults, memory sharing, p50/p95/p99 latency, failures, cost, and statistical utility per unit time; and exercise retry, idempotence, and hierarchical reduction under failure.
 
-\paragraph{What we did not do.} We have not run a head-to-head against Krum/FLAME, have not isolated the in-host microVM restore latency (our islo figures are round-trip-inclusive, so the $3$--$8$\,ms restore of Table~\ref{tab:latency} remains projected and is not contradicted by them), reached $256$--$1024$ total forks across islo, Daytona, and Tensorlake by batching under the per-account concurrency caps (tier limits, not architectural) but did not exceed those concurrent caps, and have not validated the LM-agent control plane of Sec.~\ref{sec:orchestration}. The measured claims are confined to Sec.~\ref{sec:eval}A.
+These limitations suggest the more consequential primitive: a fork should emit not only an answer and nominal confidence, but also evidence and dependency structure. Uncertainty-aware reduction becomes trustworthy only when the runtime can answer \emph{why} two workers should count as separate evidence.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-The commodity machine of the AI era is the forkable microVM sandbox, and when the unit of execution is a forked ensemble, the reduce should equilibrate it rather than average it. The kernel is one identity: to leading order under LAN, the confidence density a worker emits is a Gibbs measure with $\beta=n$, so reduce is a partition function, consistency is the zero-temperature limit, and a confident liar---a falsely cold report---is the failure mode that mandates a clip. We measured this core on an open artifact (Sec.~\ref{sec:eval}A): pooling equals the partition function and recovers the full-data oracle (gap $4.3\times10^{-4}$), the temperature cools as $1/\sqrt{N}$, the clip repairs the Byzantine fragility, and the pipeline runs end-to-end on a real forkable-sandbox cloud. The substrate's per-restore latency and large-scale robustness remain labeled projections, to be established by systems experiments at scale.
-
-\paragraph{Outlook: distributed software engineering for AI coding agents.} We close by naming the larger program this paper opens, as an agenda rather than a measured result. MapReduce gave distributed \emph{data} a faithful primitive; what is still missing is the analogue for distributed \emph{code}---a theory and paradigm for code evolution via snapshots, now that the commodity machine is a forkable sandbox rather than a racked PC. The picture is an army of coding agents that fork warm OCI snapshots per task, branch, or hypothesis, evolve code fire-and-forget, and are reaped; the reduce that turns the noisy outcomes these forks emit (test pass-rates, eval scores, build and patch successes, benchmark deltas) into a trustworthy decision has no principled foundation yet. We do not benchmark that program here and claim no software-engineering results for it; our measurements concern only the statistical reduce. What this paper contributes is a first principled primitive for that reduce: each agent's outcome carries an implicit confidence---how much it ran, how concentrated, how trustworthy---so the right combination is the partition-function, precision-weighted reduce with a Byzantine clip, not an arithmetic average.
+We presented a result contract and an auditable reference implementation for uncertainty-aware reduction over forkable workers. The statistical merge is established confidence-distribution pooling; the thermodynamic notation is a useful convention that exposes total precision, concentration, and an exact disagreement term, not a new estimator or a robustness proof. The artifact computes that normalizer correctly, exposes an associative hierarchical merge, rejects literal duplicate evidence IDs, validates worker summaries, preserves lineage, and scopes cloud observations to the operations actually measured. The open research problem is harder and more relevant to AI systems: combining correlated, adaptively selected, and potentially miscalibrated agent evidence without double counting or trusting false precision. Forkable sandboxes make ensembles easy to execute; lineage-aware evidence reduction is what could make them scientifically useful.

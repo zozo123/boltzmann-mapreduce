@@ -1,7 +1,7 @@
 [project]
 name = "bmr"
 version = "0.1.0"
-description = "Boltzmann MapReduce: a partition-function reduce for forkable sandboxes"
+description = "Uncertainty-aware confidence-distribution reduction for forkable workers"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

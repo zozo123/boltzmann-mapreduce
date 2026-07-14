@@ -1,7 +1,9 @@
-"""Fanout sweep on Tensorlake: create microVM sandboxes (concurrency-capped), run
-a trivial command in each, measure per-fork create + dispatch latency and
-throughput, scale the ladder toward 1024. A third forkable-sandbox cloud
-(cf. islo, Daytona).
+"""Sandbox-creation sweep on Tensorlake.
+
+Creates default sandboxes under a concurrency cap, runs a trivial command in
+each, and measures create and round-trip latency. Unlike the islo backend, this
+script does not restore a named shared snapshot; its results must not be labeled
+as snapshot-fork measurements.
 
 Setup: `uv pip install tensorlake` and export TENSORLAKE_API_KEY (never committed).
 
@@ -20,7 +22,7 @@ from tensorlake.sandbox import Sandbox
 LOG = "runs/tensorlake_fanout.txt"
 
 
-def fork_once(_):
+def create_once(_):
     t0 = time.perf_counter()
     sb = None
     try:
@@ -44,7 +46,7 @@ def fork_once(_):
 def run_level(k, concurrency):
     t0 = time.perf_counter()
     with ThreadPoolExecutor(max_workers=concurrency) as ex:
-        res = list(ex.map(fork_once, range(k)))
+        res = list(ex.map(create_once, range(k)))
     total = time.perf_counter() - t0
     ok = [r for r in res if r["ok"]]
     cw = np.array([r["create_s"] for r in ok]) if ok else np.array([0.0])
@@ -63,8 +65,8 @@ def main(argv):
     concurrency = int(argv[0]) if argv else 8
     ladder = [int(x) for x in argv[1:]] or [4, 16, 64, 256, 1024]
     with open(LOG, "a") as fh:
-        hdr = (f"\n=== Tensorlake fanout sweep (concurrency={concurrency}, "
-               f"fork=create+run+terminate) ===\n"
+        hdr = (f"\n=== Tensorlake sandbox-create sweep (concurrency={concurrency}, "
+               f"create+run+terminate) ===\n"
                f"{'fanout':>7} {'ok':>6} {'succ%':>6} {'total_s':>9} {'sbx/s':>8} "
                f"{'create_p50':>11} {'create_p95':>11} {'wall_p50':>9}\n")
         fh.write(hdr); fh.flush(); print(hdr, end="")

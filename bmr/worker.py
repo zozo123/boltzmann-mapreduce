@@ -25,12 +25,21 @@ def run_one(shard: dict) -> CD:
     scenario = shard.get("scenario", "mean")
     sid = shard.get("shard_id")
     if scenario == "mean":
-        return map_mean(shard["x"], shard_id=sid, backend=backend)
-    if scenario == "linreg":
-        return map_linreg(shard["X"], shard["y"], shard_id=sid, backend=backend)
-    if scenario == "logistic":
-        return map_logistic(shard["X"], shard["y"], shard_id=sid, backend=backend)
-    raise ValueError(f"unknown scenario: {scenario!r}")
+        cd = map_mean(shard["x"], shard_id=sid, backend=backend)
+    elif scenario == "linreg":
+        cd = map_linreg(shard["X"], shard["y"], shard_id=sid, backend=backend)
+    elif scenario == "logistic":
+        cd = map_logistic(shard["X"], shard["y"], shard_id=sid, backend=backend)
+    else:
+        raise ValueError(f"unknown scenario: {scenario!r}")
+    return CD(
+        theta_hat=list(cd.theta_hat),
+        info_per_obs=[list(row) for row in cd.info_per_obs],
+        n=cd.n,
+        meta=dict(cd.meta),
+        lineage=list(shard.get("lineage", [])),
+        evidence_ids=list(shard.get("evidence_ids", [])),
+    )
 
 
 def _load_shard(argv) -> dict:

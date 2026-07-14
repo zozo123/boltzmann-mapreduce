@@ -1,12 +1,12 @@
 
-=== Daytona fanout sweep (concurrency=32, fork=create+exec+delete) ===
+=== Daytona sandbox-create sweep (concurrency=32, operation=create+exec+delete) ===
  fanout     ok  succ%   total_s    sbx/s  create_p50  create_p95  wall_p50
       4      4   100%       2.3      1.8        0.24        0.46      1.24
      16     10    62%       2.1      4.7        0.23        0.38      1.12  fails={'DaytonaValidationError': 6}
      64     11    17%       2.1      5.3        0.20        0.35      0.95  fails={'DaytonaValidationError': 53}
   wall hit at fanout 64 (success 17%); stopping.
 
-=== Daytona fanout sweep (concurrency=8, fork=create+exec+delete) ===
+=== Daytona sandbox-create sweep (concurrency=8, operation=create+exec+delete) ===
  fanout     ok  succ%   total_s    sbx/s  create_p50  create_p95  wall_p50
      64     64   100%      12.5      5.1        0.20        0.56      1.01
     256    256   100%      48.9      5.2        0.19        1.12      0.95

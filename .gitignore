@@ -9,3 +9,4 @@ __pycache__/
 *.bbl
 *.synctex.gz
 .DS_Store
+tmp/

@@ -14,4 +14,4 @@
 === fanout sweep (concurrency=12, snapshot=bmr-base, fork=`-- true`) ===
  fanout     ok  succ%   total_s   forks/s   p50_s   p95_s
      64     64   100%      64.8      0.99    7.06    9.37
-    256    255   100%     240.3      1.06    6.87    9.04  fails={'capacity': 1}
+    256    255  99.6%     240.3      1.06    6.87    9.04  fails={'capacity': 1}

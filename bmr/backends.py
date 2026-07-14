@@ -1,6 +1,7 @@
-"""Execution backends: fork map workers locally, or as islo sandboxes.
+"""Execution backends: run map workers in local processes or islo sandboxes.
 
-LocalBackend forks OS processes (the ensemble of replicas, runnable today).
+LocalBackend uses Python's process-pool start method, which is platform/runtime
+dependent and therefore is not claimed to exercise copy-on-write semantics.
 IsloBackend snapshots a parent sandbox once and forks one sandbox per shard ---
 the paper's substrate --- via the real ``islo`` CLI.
 """
@@ -27,7 +28,7 @@ def _shard_label(shard: dict, i: int) -> str:
 
 
 class LocalBackend:
-    """Fork one OS process per shard via a process pool."""
+    """Run shards in a local Python process pool."""
 
     def __init__(self, max_workers: int | None = None):
         self.max_workers = max_workers
@@ -102,7 +103,8 @@ class IsloBackend:
         name = _shard_label(shard, i)
         cmd = ["islo", "use", name, "--snapshot", self.base_snapshot,
                "--workdir", self.workdir,
-               "-e", f"SHARD_B64={b64}", "--delete-after", str(self.delete_after)]
+               "-e", f"SHARD_B64={b64}", "-e", "BMR_BACKEND=islo",
+               "--delete-after", str(self.delete_after)]
         if self.image:
             cmd += ["--image", self.image]
         if self.harness:

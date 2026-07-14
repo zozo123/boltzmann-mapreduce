@@ -1,4 +1,4 @@
-"""Local process-fork ensemble scaling to K=1024: validates that the reduce and
+"""Local process-pool ensemble scaling to K=1024: validates that the reduce and
 its uncertainty scale with fanout, cheaply and without a sandbox quota. This is
 the LOCAL backend (OS process forks), distinct from the islo microVM curve.
 
@@ -13,7 +13,7 @@ from bmr.core import reduce_partition
 def main():
     rng = np.random.default_rng(0)
     be = LocalBackend()
-    lines = ["Local process-fork ensemble scaling (tiny mean shards, true mu=5.0)",
+    lines = ["Local process-pool ensemble scaling (tiny mean shards, true mu=5.0)",
              f"{'fanout K':>9} {'total_s':>9} {'forks/s':>9} {'CI_halfwidth':>13} {'|pool-5|':>9}"]
     for K in [16, 64, 256, 1024]:
         shards = [{"scenario": "mean", "x": rng.normal(5.0, 1.5, 80).tolist(), "shard_id": i}

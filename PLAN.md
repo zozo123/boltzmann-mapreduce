@@ -1,59 +1,60 @@
-# Plan & roadmap
+# Research roadmap
 
-## Where this stands
+## Current evidence
 
 | Component | Status |
 |---|---|
-| Paper (concise ≤5pp + full) | Done; 5 expert reviews applied (`paper/REVIEWS.md`) |
-| `bmr.core` (CD, reduce, Gibbs view, Byzantine clip) | Done; 6 passing tests |
-| Local backend (process fork) | Done; runs the full demo |
-| islo backend (snapshot + fork) | Done; reaches real allocation, graceful fallback |
-| Figures (Gibbs collapse, cooling, Byzantine) | Done |
+| Validated worker-result schema | Implemented and tested |
+| Gaussian canonical merge | Flat and hierarchical APIs implemented and tested |
+| Exact unnormalized product normalizer | Implemented and tested |
+| Lineage and evidence identifiers | Literal overlap rejected; lineage correlation not modeled |
+| Local execution | Python process pool |
+| Named-snapshot execution | One four-shard islo run |
+| Daytona/Tensorlake observations | Default sandbox creation only |
+| Outlier handling | Multivariate stress-test heuristic; no robustness guarantee |
+| Agent workload | Research agenda only |
 
-## What the demo proves vs. what is still a projection
+## What the artifact establishes
 
-**Proven, locally and exactly:**
-- `reduce_partition` = partition-function product = precision-weighted pooling
-  (matches the closed-form inverse-variance estimator to machine precision).
-- Pooled estimate is asymptotically equivalent to the full-data oracle (efficiency
-  recovered), for both the mean and linear-regression scenarios.
-- `β = n` as inverse temperature; CI half-width cools as `∝ 1/√N`.
-- Precision-weighted pooling is *not* Byzantine-robust; clipping bounds a confident liar.
+- Independent Gaussian factors merge through additive natural parameters.
+- The exact normalizer includes disagreement energy
+  `1/2 * (c - q.T @ inv(P) @ q)`.
+- Malformed sample sizes and information matrices are rejected.
+- Hierarchical canonical merging matches flat reduction, and literal duplicate
+  evidence IDs are rejected unless the caller explicitly overrides the guard.
+- The outlier heuristic examines all parameter coordinates and bounds the supplied
+  multivariate regression attack.
+- The islo adapter can execute deterministic workers from a named snapshot.
 
-**Still a projection (would require real experiments):**
-- The latency table (3–8 ms restore, sub-20 ms p99) — needs microbenchmarks of islo
-  snapshot/restore for warmed Python working sets.
-- The robustness table (mid-90% accuracy under 30% Byzantine, ~⅓ comms) — needs a real
-  poisoning experiment with a defined attack model, dataset split, and model.
+These are algebraic, software, and execution-path checks. They are not evidence of
+general statistical efficiency, Byzantine tolerance, or a systems performance win.
 
-## Next steps (in priority order)
+## Experiments needed for a full research paper
 
-1. **Real islo latency benchmark.** Measure `islo snapshot save` + `islo use --snapshot`
-   round-trip for the bmr base across fanouts (1, 10, 100), warmed NumPy resident set.
-   Replace the projected latency row with measured numbers (and keep the caveat where it
-   still applies).
-2. **Real Byzantine experiment.** Fix an attack model (sign-flip / label-flip / confident
-   liar), sweep the Byzantine fraction, and report clipped-pooling accuracy vs Krum/FLAME
-   on a *matched* protocol — or clearly keep it as a design target.
-3. **Specify the detection layer.** The Shapley-based detector is currently a heuristic;
-   define the value function, the game, and the discard/clip threshold, then evaluate.
-4. **Heterogeneous-truth handling.** Today consistency assumes `θ_{k,0} = θ_0`. Add a
-   test for / treatment of genuine cross-shard heterogeneity (the pooled target becomes a
-   precision-weighted average of differing truths).
-5. **Higher-order CD corrections.** The Gibbs identity is leading-order; add the
-   `O(n^{-1/2})` skewness/curvature term a confidence distribution captures.
-6. **Live branching demo.** Use islo fork-at-a-decision-node to test competing
-   hyperparameterizations in parallel and keep the low-energy branch (simulated annealing
-   over the agent's hypothesis landscape).
+1. **Statistical calibration.** At least 500 repetitions across `K`, local `n`, and
+   dimension `p`; report bias, MSE, interval coverage, width, and convergence failures.
+2. **Serious baselines.** Exact sufficient statistics, sample-size weighting,
+   conventional meta-analysis/Rao-CD, surrogate likelihood, and distributed Newton.
+3. **Non-IID targets.** Covariate shift, heteroskedasticity, overlapping evidence,
+   correlated workers, and genuinely different local parameters with random effects.
+4. **Robustness threat model.** Adaptive and colluding attacks on both location and
+   covariance; formal breakdown or influence analysis; affine-invariant multivariate
+   baselines.
+5. **Controlled systems comparison.** Identical image and workload on processes,
+   containers, cold microVMs, and named-snapshot restores; concurrent fanout,
+   p50/p95/p99, page faults, memory sharing, failures, cost, and utility per second.
+6. **Agent evidence.** A real forked coding/evaluation workload where confidence is
+   derived from held-out tests or independent verification rather than model self-report.
+7. **Lineage-aware inference.** Use the fork DAG and evidence identifiers to avoid
+   double counting shared observations and common ancestors.
+8. **Adaptive selection.** Correct confidence after branch pruning, tournament
+   selection, and repeated use of the same tests.
 
-## Repo layout
+## Engineering priorities
 
-```
-bmr/            core stats, worker entrypoint, backends, figures
-demo.py         CLI orchestrator (local | islo; mean | linreg; --byzantine)
-tests/          correctness tests (pytest)
-paper/          LaTeX sources + compiled PDFs + REVIEWS.md
-figs/           generated figures
-islo.yaml       islo sandbox config (pip install -r requirements.txt)
-run.sh          one-shot: venv + tests + demo
-```
+1. Replace the demonstration heuristic with a separately evaluated robust estimator.
+2. Store raw structured benchmark traces with timestamps and environment manifests.
+3. Add an explicit correlation model over the lineage DAG.
+4. Add numerical conditioning diagnostics and shifted canonical summaries for extreme
+   parameter offsets.
+5. Extend CI with rendered-page regression checks once a stable renderer is pinned.

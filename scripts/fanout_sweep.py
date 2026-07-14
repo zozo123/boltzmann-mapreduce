@@ -1,8 +1,8 @@
-"""Fanout sweep on islo: fork the bmr-base OCI snapshot on a geometric ladder,
-capped at a fixed concurrency, and measure real per-fork restore+dispatch latency
-and throughput. Converts the paper's projected restore-latency row into a measured
-curve. Each fork runs `-- true`, so we time the microVM restore + round-trip, not
-in-fork compute. Tolerates capacity limits and records what was achieved.
+"""Fanout sweep on islo: restore-and-run the named bmr-base OCI snapshot on a
+geometric ladder, capped at a fixed concurrency.  The recorded wall time includes
+client dispatch, scheduling, snapshot restoration, command execution, capture,
+and network round-trip; it is not an isolated restore-latency measurement.  Each
+worker runs ``true``.  Capacity failures are retained in the log.
 
     uv run python scripts/fanout_sweep.py            # ladder 4..1024, 32 concurrent
     uv run python scripts/fanout_sweep.py 32 4 16 64 # concurrency 32, ladder 4 16 64
@@ -77,7 +77,7 @@ def main(argv):
         print(hdr, end="")
         for k in ladder:
             row = run_level(k, concurrency)
-            line = (f"{row['k']:>7} {row['ok']:>6} {100*row['success_rate']:>5.0f}% "
+            line = (f"{row['k']:>7} {row['ok']:>6} {100*row['success_rate']:>5.1f}% "
                     f"{row['total_wall_s']:>9.1f} {row['throughput_forks_s']:>9.2f} "
                     f"{row['fork_p50_s']:>7.2f} {row['fork_p95_s']:>7.2f}"
                     + (f"  fails={row['fails']}" if row['fails'] else ""))

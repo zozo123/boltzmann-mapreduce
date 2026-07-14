@@ -1,122 +1,149 @@
-# Boltzmann MapReduce
+# Uncertainty-Aware Reduction for Forkable Sandboxes
 
-**Distributed statistical inference as Gibbs-ensemble computation over forkable sandboxes.**
+**Boltzmann MapReduce** is a small reference implementation and research paper about
+what parallel workers should return when their outputs are noisy: an estimate,
+uncertainty, evidence provenance, and fork lineage rather than an unexplained scalar.
 
-The reduce step of classic MapReduce is an arithmetic aggregator — it sums, counts,
-and concatenates, but cannot reason about sampling variability or efficiency. This
-project reorganizes the model around one observation:
+For disjoint evidence about a common parameter, the statistical core uses established
+inverse-information/confidence-distribution pooling. Under local asymptotic normality,
+the Gaussian factor can be written
 
-> To leading asymptotic order, the confidence density a statistical worker emits is a
-> **Gibbs–Boltzmann measure** `h_k(θ) ∝ exp(−β_k · E_k(θ))` whose inverse temperature is
-> the local sample size, **β_k = n_k**, with energy `E_k(θ) = ½(θ̂_k−θ)ᵀ J_k (θ̂_k−θ)`.
-
-So distributed inference becomes the **equilibration of a statistical ensemble**
-(*Boltzmann computing*): the unit of execution is not one deterministic path but an
-ensemble of cheaply forked replicas, and the output is a *distribution* that collapses to
-a point only in the cold (`n → ∞`) limit. The **reduce is a partition-function product**
-of Gibbs factors — precision-weighted (inverse-variance) pooling — and frequentist
-consistency is the zero-temperature limit.
-
-This repo holds the **paper** and a **runnable demo** that makes the picture concrete.
-
-## What it gives you
-
-- A `map` that returns a *confidence density* (point estimate + per-observation
-  information `J` + `n`), not a scalar.
-- A `reduce` (`reduce_partition`) that multiplies Gibbs factors → precision-weighted
-  pooling, recovering the full-data estimator's efficiency from summaries alone.
-- The honest Byzantine story: precision-weighted pooling has an **unbounded influence
-  function**, so a confident liar (tiny variance, far estimate) hijacks the consensus;
-  `byzantine_clip` bounds reported precision and down-weights location outliers.
-- Two execution backends behind one interface:
-  - **`local`** — forks OS processes (runs today).
-  - **`islo`** — *snapshot once, fork per shard* on [islo.dev](https://islo.dev)
-    microVM sandboxes (the paper's substrate).
-
-## Snapshot-once, fork-per-shard → islo primitives
-
-```
-parent sandbox  ──(islo snapshot save … --name bmr-base)──▶  warm snapshot
-                                                                  │
-        per shard k:  islo use bmr-shard-k --snapshot bmr-base    │  (fork)
-                       -e SHARD_B64=… -- python3 -m bmr.worker  ◀─┘
-                       └─▶ emits  __BMR__{confidence density}__BMR__
-reduce: multiply Gibbs factors  ⇒  precision-weighted pooled CD
+```text
+g_k(theta) = exp(-beta_k * E_k(theta))
+beta_k     = n_k
+E_k(theta) = 1/2 (theta_hat_k-theta)' J_k (theta_hat_k-theta)
 ```
 
-Each fork is a replica of the canonical ensemble; copy-on-write microVM forking is what
-makes drawing the replicas cheap enough to treat the ensemble as the unit of computation.
+when energy is defined per observation. `beta = n` is a useful thermodynamic
+convention, not a new estimator; the invariant statistical quantity is total precision
+`P_k = n_k * J_k`.
 
-## Quickstart (local backend)
+## What is new - and what is not
 
-All Python runs under [`uv`](https://docs.astral.sh/uv/) (no manual venv):
+This project does **not** claim to invent inverse-variance pooling, Rao-type confidence
+distributions, or MapReduce statistical inference. Its contributions are:
+
+- An uncertainty- and provenance-carrying worker-result contract.
+- An associative Gaussian canonical merge `(P, q, c, N)`.
+- The exact Gaussian product normalizer, including worker-disagreement energy.
+- A runnable snapshot-backed worker path and carefully scoped platform observations.
+- A research agenda for lineage-aware reduction of correlated forked AI agents.
+
+The key boundary is equally important: process or sandbox isolation does not make
+worker evidence statistically independent.
+
+## Result contract
+
+A `CD` worker result carries:
+
+- `theta_hat`: local estimate.
+- `info_per_obs`: positive-definite per-observation information `J`.
+- `n`: positive local sample size.
+- `lineage`: fork ancestry identifiers.
+- `evidence_ids`: identifiers for underlying observations/evaluations.
+- `meta`: runtime and application metadata.
+
+The reducer validates dimensions, finite values, positive sample size, provenance,
+symmetry, and positive definiteness before combining summaries. Non-empty duplicate
+`evidence_ids` are rejected by default; an explicit override exists for callers that
+model overlap outside this package.
+
+For `P_k = n_k J_k`, `q_k = P_k theta_hat_k`, and
+`c_k = theta_hat_k' P_k theta_hat_k`, independent factors merge by addition. The
+pooled mode is `P^-1 q`; covariance is `P^-1`; and the unnormalized product has
+
+```text
+-log Z = -p/2 log(2*pi) + 1/2 log|P| + 1/2 (c - q' P^-1 q).
+```
+
+The final term is exposed as `disagreement_energy`.
+
+`CanonicalSummary.from_cd(cd)` and `CanonicalSummary.merge(...)` expose the same
+associative operation for streaming or tree reduction. `finalize_canonical(...)`
+converts a merged summary to a pooled result. Shared lineage is preserved, but it is
+not interpreted as an independence model.
+
+## Quickstart
+
+All Python commands run under [`uv`](https://docs.astral.sh/uv/):
 
 ```bash
-uv sync                                   # uv-managed Python + locked deps
-uv run pytest -q                          # correctness tests (7/7)
+uv sync
+uv run pytest -q
 uv run python demo.py --scenario mean --byzantine
 uv run python demo.py --scenario linreg
+uv run python demo.py --scenario logistic
 ```
 
-Or just `./run.sh` (installs uv if missing). The local backend forks OS processes
-directly — no AI harness needed.
+The local backend uses Python's platform-dependent process pool. It does not claim
+copy-on-write or `fork()` semantics.
 
-## Run on islo (entry point: an on-box AI harness)
+## Snapshot-backed execution on islo
 
 ```bash
 islo login
-# build the parent: clones the repo; islo.yaml's setup_script installs uv and runs `uv sync`.
 islo use bmr-base --source github://zozo123/boltzmann-mapreduce -- true
-islo snapshot save bmr-base --name bmr-base               # snapshot once
-
-# Each shard is forked from the snapshot; its ENTRY POINT is an on-box AI agent
-# harness that runs the worker (the agentic map of the paper, made real):
-uv run python demo.py --backend islo --scenario mean --harness claude
+islo snapshot save bmr-base --name bmr-base
+uv run python demo.py --backend islo --scenario mean
 ```
 
-With `--harness claude`, each fork launches as
-`islo use bmr-shard-k --snapshot bmr-base --workdir /workspace/boltzmann-mapreduce
--e SHARD_B64=… --agent claude --task "…"`, so the **entry point is an on-box AI harness**
-(verified: islo reports `claude is ready in sandbox`). That harness is an *interactive*
-agent session, not a one-shot pipe — it's the right entry point for a *reasoning* map (let
-the agent pick/adapt the method), but the deterministic reduce we benchmark captures each
-worker's confidence density from the direct `-- uv run python -m bmr.worker` path (the
-"unless not needed" fallback). Omit `--harness` for that direct path.
+The committed [`runs/islo_run.txt`](runs/islo_run.txt) records one four-shard execution
+from a named 141 MB snapshot. It is an execution-path existence proof, not an isolated
+microVM-restore benchmark.
 
-**The substrate has been run for real on islo** (see `runs/islo_run.txt`): a 4-shard job
-forked from the 141 MB uv-locked OCI snapshot reduced to a pooled mean of `4.942` vs the
-full-data oracle `4.945` (gap `2.9e-3`), each fork dispatched in ~6.7 s (round-trip).
-Because the workers are deterministic, the islo and local backends produce identical
-statistical output; the islo run evidences the snapshot-once/fork-per-shard substrate
-executing end-to-end. The `islo` backend falls back to `local` (with a notice) if the CLI is
-unauthenticated or capacity is unavailable, so the demo always completes.
+The Daytona and Tensorlake scripts create default sandboxes and run a trivial command.
+They do **not** restore the named islo snapshot, so their logs are platform-specific
+creation observations rather than comparable snapshot-fork measurements.
 
-## Figures (written to `figs/`)
+## Robustness scope
 
-- **`fig_gibbs.png`** — per-shard Gibbs densities (hot replicas) collapsing into the sharp
-  pooled density; the full-data oracle overlaps the pool.
-- **`fig_cooling.png`** — pooled CI half-width vs cumulative `N`, tracking `∝ 1/√N`: the
-  effective temperature `T ∝ 1/n → 0` as data accrues.
-- **`fig_byzantine.png`** — a confident liar pulls naive pooling; `byzantine_clip`
-  recovers the truth.
+Gaussian precision pooling is not robust: even a fixed-precision location outlier has
+unbounded influence, and forged high precision adds another attack surface.
+`byzantine_clip` is retained as a transparent stress-test heuristic. It now handles all
+parameter coordinates, caps relative precision volume, and applies a redescending
+multivariate location weight, but it is not a certified Byzantine defense.
+
+Do not multiply factors when workers reuse evidence, share correlated noise, or target
+different parameters. In those settings use a correlation-aware or hierarchical model.
 
 ## Paper
 
-`paper/` contains the LaTeX source and the compiled PDF:
+The revised paper is:
 
-- **`boltzmann-mapreduce.pdf`** — *Boltzmann MapReduce: A Partition-Function Reduce for
-  Forkable Sandboxes* (≤5 pp body + refs). Built from `main_5pp.tex` + `body_5pp.tex`
-  + `refs.bib`; the one figure is `figs/fig_gibbs.png`. Leads with measured results
-  (local, plus real runs on two forkable-sandbox clouds, islo and Daytona); the snapshot
-  layer is framed as OCI images.
+> **Uncertainty-Aware Reduction for Forkable Sandboxes: A Thermodynamic View of
+> Confidence-Distribution Pooling**
 
-Rebuild: `cd paper && pdflatex main_5pp && bibtex main_5pp && pdflatex main_5pp && pdflatex main_5pp`.
-See `paper/REVIEWS.md` for the expert reviews that shaped the paper.
+Sources are in `paper/`. Rebuild with:
 
-## Honest scope
+```bash
+cd paper
+mkdir -p /tmp/bmr-empty-texmf ../output/pdf ../docs
+TEXMFHOME=/tmp/bmr-empty-texmf pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
+TEXMFHOME=/tmp/bmr-empty-texmf bibtex main_5pp
+TEXMFHOME=/tmp/bmr-empty-texmf pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
+TEXMFHOME=/tmp/bmr-empty-texmf pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
+cp main_5pp.pdf ../output/pdf/uncertainty-aware-reduction.pdf
+cp main_5pp.pdf ../docs/uncertainty-aware-reduction.pdf
+```
 
-The paper's reported systems/robustness numbers are **projections from published figures
-and design targets, not measurements**. This demo computes the *statistics* exactly and
-locally; the islo path is real when authenticated. The Gibbs identification is
-leading-order (LAN); consistency assumes correct specification and a common parameter
-across shards. See `PLAN.md` for what would make the empirical claims real.
+`TEXMFHOME` is isolated above to avoid incompatible user-level TeX packages. CI runs
+the Python suite on Python 3.10 and 3.12 and independently rebuilds the paper.
+
+## Evidence boundaries
+
+| Component | What the repository establishes | What it does not establish |
+|---|---|---|
+| Statistical core | Gaussian algebra, exact normalizer, schema validation | General finite-sample efficiency |
+| Logistic check | Expected direction under severe IID size imbalance | Non-IID robustness or baseline superiority |
+| Outlier heuristic | One scalar stress test and multivariate regression test | Byzantine tolerance |
+| islo | One named-snapshot end-to-end execution | In-host restore latency advantage |
+| Daytona/Tensorlake | Batched default sandbox creation | Shared-snapshot restore performance |
+| Provenance | Literal evidence-ID overlap rejection and lineage transport | Correlation-aware inference |
+
+See [`PLAN.md`](PLAN.md) for the experiments required for a full systems/statistics paper.
+
+## License status
+
+No software license file is currently present. Public visibility does not itself grant
+reuse rights; select and add a code license before presenting the repository as open
+source. The arXiv paper's document license does not automatically license this code.
