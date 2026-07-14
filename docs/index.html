@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07110e">
   <title>Boltzmann MapReduce — Uncertainty-Aware Reduction</title>
-  <meta name="description" content="A result contract for combining independent worker estimates without throwing away uncertainty, evidence provenance, or disagreement.">
+  <meta name="description" content="A result contract that preserves uncertainty, evidence provenance, and disagreement while combining independent worker estimates.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://zozo123.github.io/boltzmann-mapreduce/">
   <meta property="og:title" content="Boltzmann MapReduce — Uncertainty-Aware Reduction">
@@ -978,7 +978,7 @@
         <div>
           <p class="kicker">Uncertainty-aware reduction</p>
           <h1>Parallel answers are cheap. Knowing what to <em>trust</em> is the hard part.</h1>
-          <p class="hero-copy">Make every worker return an estimate, its uncertainty, and where its evidence came from. Then combine independent results without pretending every answer deserves an equal vote.</p>
+          <p class="hero-copy">Make every worker return an estimate, its uncertainty, and the origin of its evidence. Then combine independent results with weight earned by statistical information.</p>
           <div class="actions">
             <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read the corrected PDF</a>
             <a class="button anchor" href="#explorer">Stress-test the reducer</a>
@@ -1034,7 +1034,7 @@
             <button class="scenario" type="button" data-scenario="unequal" aria-pressed="false">Unequal information</button>
             <button class="scenario" type="button" data-scenario="conflict" aria-pressed="false">Confident conflict</button>
           </div>
-          <p class="lab-caption" id="scenarioCaption">Agreement makes the pooled factor sharper without moving it far. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence.</p>
+          <p class="lab-caption" id="scenarioCaption">Agreement sharpens the pooled factor while keeping its location nearly stable. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence.</p>
         </div>
       </div>
 
@@ -1100,7 +1100,7 @@
         <div class="playground-head">
           <div>
             <p class="section-label">Live fusion explorer</p>
-            <h2>Do not take the diagram on faith. Push it until it breaks.</h2>
+            <h2>Interrogate the diagram. Push it until it breaks.</h2>
           </div>
           <p class="lead">Drag worker peaks, change their uncertainty, remove a worker, stream new samples, or deliberately reuse evidence. The reducer updates in real time—and refuses a merge when provenance fails.</p>
         </div>
@@ -1196,17 +1196,17 @@
       <div class="wrap value-grid">
         <div class="value-statement">
           <p class="section-label">Why this is valuable</p>
-          <h2>Not a smarter vote. A more honest interface.</h2>
-          <p class="lead">The reducer becomes useful because it preserves three facts that a mean or majority vote cannot express.</p>
+          <h2>An honest interface for evidence-aware reduction.</h2>
+          <p class="lead">The reducer keeps evidence strength, merge structure, and disagreement visible from worker output to pooled result.</p>
         </div>
         <div class="value-cards">
           <article class="value-card">
             <div class="value-number">01</div>
-            <div><h3>Evidence earns weight</h3><p>A precise estimate contributes more than a noisy one through total precision <code>Pₖ = nₖJₖ</code>—not through worker identity or verbal confidence.</p></div>
+            <div><h3>Evidence earns weight</h3><p>Total precision <code>Pₖ = nₖJₖ</code> determines each estimate's contribution to the pooled result.</p></div>
           </article>
           <article class="value-card">
             <div class="value-number">02</div>
-            <div><h3>Merging scales as a tree</h3><p>The canonical summary is associative and commutative. Reduce locally, stream incrementally, or combine across a fanout tree without changing the answer.</p></div>
+            <div><h3>Merging scales as a tree</h3><p>The canonical summary is associative and commutative. Local, streaming, and fanout-tree reductions produce the same answer.</p></div>
           </article>
           <article class="value-card">
             <div class="value-number">03</div>
@@ -1219,8 +1219,8 @@
     <section class="boundary" id="boundary">
       <div class="wrap">
         <p class="section-label">The scientific boundary</p>
-        <h2>Isolation makes workers separate. It does not make their evidence independent.</h2>
-        <p class="lead">This distinction is the most important part of the paper. Multiplication is justified only when workers estimate the same target from independent, non-overlapping evidence.</p>
+        <h2>Separate workers still require independent evidence.</h2>
+        <p class="lead">Multiplication applies when workers estimate the same target from independent, non-overlapping evidence. The evidence design carries this scientific burden.</p>
         <div class="boundary-grid">
           <article class="boundary-card good">
             <div class="boundary-icon" aria-hidden="true">✓</div>
@@ -1234,8 +1234,8 @@
           </article>
           <article class="boundary-card bad">
             <div class="boundary-icon" aria-hidden="true">×</div>
-            <h3>Do not use it as</h3>
-            <p>A generic trust score for correlated agents, adversarial workers, or different local truths.</p>
+            <h3>Requires a different model</h3>
+            <p>Correlated agents, adversarial workers, and different local truths require explicit dependence or robustness models.</p>
             <ul class="boundary-list">
               <li>Self-reported model confidence</li>
               <li>An automatic Byzantine defense</li>
@@ -1243,7 +1243,7 @@
             </ul>
           </article>
         </div>
-        <div class="warning-band"><strong>Core warning</strong><span>Shared prompts, models, repositories, tests, or fork ancestors create common-mode error. Provenance is necessary; it is not yet a complete correlation model.</span></div>
+        <div class="warning-band"><strong>Core requirement</strong><span>Shared prompts, models, repositories, tests, or fork ancestors create common-mode error. Provenance supplies the audit trail; correlation modeling remains a separate requirement.</span></div>
       </div>
     </section>
 
@@ -1251,12 +1251,12 @@
       <div class="wrap evidence-top">
         <figure class="published-figure">
           <img src="./fig_gibbs.png" alt="Information-weighted Gaussian worker factors and their pooled estimate">
-          <figcaption>Published synthetic illustration: narrower Gaussian factors carry more information, and their product is sharper. This visualizes established precision pooling; it is not evidence of a new estimator.</figcaption>
+          <figcaption>Published synthetic illustration: narrower Gaussian factors carry more information, and their product is sharper. The figure visualizes established precision pooling.</figcaption>
         </figure>
         <div class="evidence-copy">
           <p class="section-label">Auditable artifact</p>
           <h2>Small enough to inspect. Complete enough to rerun.</h2>
-          <p>The repository checks the Gaussian algebra, exact normalizer, hierarchical merge, schema, overlap guard, and three deterministic statistical paths. Platform logs are execution observations—not a cross-provider benchmark.</p>
+          <p>The repository checks the Gaussian algebra, exact normalizer, hierarchical merge, schema, overlap guard, and three deterministic statistical paths. Platform logs document execution paths. A controlled cross-provider benchmark remains future work.</p>
           <div class="fact-list">
             <div class="fact"><strong>Mean</strong><span>Information-pooled 4.9542 versus centralized 4.9546 on twelve synthetic shards.</span></div>
             <div class="fact"><strong>0.033</strong><span>Coefficient gap to centralized OLS in the committed linear-regression sanity check.</span></div>
@@ -1335,19 +1335,19 @@
           means: [4.88, 5.03, 4.96],
           sigmas: [0.18, 0.10, 0.22],
           label: "LOW",
-          caption: "Agreement makes the pooled factor sharper without moving it far. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence."
+          caption: "Agreement sharpens the pooled factor while keeping its location nearly stable. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence."
         },
         unequal: {
           means: [4.72, 5.02, 5.19],
           sigmas: [0.34, 0.08, 0.42],
           label: "LOW",
-          caption: "The narrow blue factor carries more information, so it contributes more than the two noisier workers. Weight follows precision—not worker identity."
+          caption: "The narrow blue factor carries more information, so it contributes more than the two noisier workers. Precision determines weight."
         },
         conflict: {
           means: [4.66, 5.02, 5.48],
           sigmas: [0.12, 0.10, 0.11],
           label: "HIGH",
-          caption: "Confident disagreement can still produce a sharp pooled curve. The disagreement energy is the warning: concentration is not the same as consensus."
+          caption: "Confident disagreement can still produce a sharp pooled curve. The disagreement energy distinguishes concentration from consensus."
         }
       };
 
@@ -1719,10 +1719,10 @@
           precisionOutput.textContent = "—";
           if (result.duplicates.length) {
             status.textContent = `Merge blocked · ${result.duplicates.join(", ")} counted twice`;
-            formulaOutput.textContent = "Not reduced: repeated evidence identifiers must be resolved or explicitly modeled.";
+            formulaOutput.textContent = "Merge blocked: resolve repeated evidence identifiers or model their dependence explicitly.";
           } else {
             status.textContent = "Merge blocked · select at least two workers";
-            formulaOutput.textContent = "Not reduced: a reduction requires at least two compatible summaries.";
+            formulaOutput.textContent = "Merge blocked: select at least two compatible summaries.";
           }
           status.dataset.tone = "blocked";
         } else {
@@ -1744,7 +1744,7 @@
 
         canvas.setAttribute("aria-label", result.reducible
           ? `${result.enabled.length} adjustable worker distributions produce a pooled estimate of ${result.mean.toFixed(3)} with disagreement energy ${result.disagreement.toFixed(2)}.`
-          : `Worker distributions are shown, but the merge is blocked because ${result.duplicates.length ? "evidence identifiers overlap" : "fewer than two workers are selected"}.`);
+          : `The merge is blocked because ${result.duplicates.length ? "evidence identifiers overlap" : "fewer than two workers are selected"}.`);
         scheduleDraw();
       }
 
