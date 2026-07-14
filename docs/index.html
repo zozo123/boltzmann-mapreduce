@@ -488,6 +488,243 @@
     .contract-label { align-self: center; margin-right: 8px; color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
     .token { padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-bright); color: #23483b; font: 12px/1 var(--mono); }
 
+    .playground {
+      position: relative;
+      overflow: hidden;
+      color: var(--white);
+      background:
+        radial-gradient(circle at 9% 10%, rgba(125,240,183,.09), transparent 28rem),
+        radial-gradient(circle at 94% 84%, rgba(131,181,255,.07), transparent 30rem),
+        #091612;
+    }
+    .playground::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 48px 48px;
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+      mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    }
+    .playground .wrap { position: relative; z-index: 1; }
+    .playground .section-label { color: var(--mint); }
+    .playground-head {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 76px;
+      align-items: end;
+      margin-bottom: 56px;
+    }
+    .playground-head h2 { margin-bottom: 0; }
+    .playground-head .lead { color: rgba(247,255,249,.57); }
+    .explorer-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(390px, .92fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    .explorer-visual, .explorer-controls {
+      min-width: 0;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 27px;
+      background: rgba(255,255,255,.038);
+      box-shadow: 0 28px 80px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.035);
+      backdrop-filter: blur(10px);
+    }
+    .explorer-visual { padding: 18px; }
+    .explorer-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 3px 4px 16px;
+    }
+    .explorer-card-title { color: rgba(247,255,249,.9); font-size: 11px; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
+    .explorer-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 70%;
+      color: var(--mint);
+      font-size: 10px;
+      font-weight: 780;
+      text-align: right;
+    }
+    .explorer-status::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 13px currentColor;
+    }
+    .explorer-status[data-tone="warning"] { color: var(--amber); }
+    .explorer-status[data-tone="blocked"] { color: var(--coral); }
+    .explorer-chart-stage {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        rgba(0,0,0,.15);
+      background-size: 34px 34px;
+    }
+    #explorerChart {
+      display: block;
+      width: 100%;
+      height: 370px;
+      cursor: ew-resize;
+      touch-action: pan-y;
+    }
+    .chart-instruction {
+      position: absolute;
+      left: 15px;
+      bottom: 12px;
+      pointer-events: none;
+      color: rgba(247,255,249,.35);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .explorer-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px 18px;
+      padding: 15px 4px 2px;
+      color: rgba(247,255,249,.44);
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+    .legend-swatch { width: 16px; height: 2px; border-radius: 4px; background: var(--legend-color); box-shadow: 0 0 7px color-mix(in srgb, var(--legend-color), transparent 45%); }
+    .legend-swatch.pooled { height: 3px; background: var(--mint); }
+    .explorer-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-top: 12px;
+    }
+    .explorer-stat {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.075);
+      border-radius: 14px;
+      background: rgba(255,255,255,.025);
+    }
+    .stat-label { display: block; margin-bottom: 7px; color: rgba(247,255,249,.35); font-size: 8px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .stat-value { display: block; overflow: hidden; color: var(--white); font: 500 20px/1.05 var(--serif); text-overflow: ellipsis; white-space: nowrap; }
+    .explorer-formula {
+      margin: 9px 2px 0;
+      color: rgba(247,255,249,.42);
+      font: 10px/1.55 var(--mono);
+    }
+    .explorer-controls { padding: 21px; }
+    .controls-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .controls-head h3 { margin: 0; color: var(--white); font-size: 18px; }
+    .controls-head p { margin: 5px 0 0; color: rgba(247,255,249,.38); font-size: 10px; }
+    .sample-actions { display: flex; gap: 6px; }
+    .sample-button {
+      min-height: 42px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 9px;
+      color: rgba(247,255,249,.65);
+      background: rgba(255,255,255,.035);
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .035em;
+    }
+    .sample-button:hover, .sample-button:focus-visible { color: var(--white); border-color: rgba(125,240,183,.35); }
+    .sample-button[aria-pressed="true"] { color: var(--night); border-color: var(--mint); background: var(--mint); }
+    .preset-label {
+      margin: 0 0 9px;
+      color: rgba(247,255,249,.35);
+      font-size: 8px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .explorer-presets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .preset-button {
+      min-height: 44px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 11px;
+      color: rgba(247,255,249,.48);
+      background: rgba(255,255,255,.025);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: left;
+      transition: border-color .2s ease, color .2s ease, background .2s ease;
+    }
+    .preset-button:hover, .preset-button:focus-visible { color: var(--white); border-color: rgba(125,240,183,.3); }
+    .preset-button[aria-pressed="true"] { color: var(--night); border-color: var(--mint); background: var(--mint); }
+    .worker-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 13px; }
+    .worker-control {
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 13px;
+      background: rgba(0,0,0,.11);
+      transition: opacity .2s ease, border-color .2s ease;
+    }
+    .worker-control.is-disabled { opacity: .42; }
+    .worker-control.is-dragging { border-color: var(--worker-color); }
+    .worker-control-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .worker-identity { display: flex; align-items: center; min-width: 0; gap: 7px; }
+    .worker-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--worker-color); box-shadow: 0 0 10px var(--worker-color); }
+    .worker-name { color: rgba(247,255,249,.78); font-size: 10px; font-weight: 850; }
+    .worker-evidence { overflow: hidden; color: rgba(247,255,249,.33); font: 8px/1 var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+    .include-toggle { display: inline-flex; align-items: center; gap: 5px; color: rgba(247,255,249,.36); cursor: pointer; font-size: 8px; font-weight: 750; }
+    .include-toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--mint); }
+    .parameter { display: block; }
+    .parameter + .parameter { margin-top: 10px; }
+    .parameter-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; color: rgba(247,255,249,.36); font-size: 8px; font-weight: 700; }
+    .parameter output { color: rgba(247,255,249,.82); font: 9px/1 var(--mono); }
+    .parameter input[type="range"] {
+      display: block;
+      width: 100%;
+      height: 22px;
+      margin: 0;
+      appearance: none;
+      background: transparent;
+      cursor: ew-resize;
+    }
+    .parameter input[type="range"]::-webkit-slider-runnable-track { height: 3px; border-radius: 4px; background: rgba(255,255,255,.11); }
+    .parameter input[type="range"]::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -6.5px; appearance: none; border: 2px solid #091612; border-radius: 50%; background: var(--worker-color); box-shadow: 0 0 8px color-mix(in srgb, var(--worker-color), transparent 35%); }
+    .parameter input[type="range"]::-moz-range-track { height: 3px; border-radius: 4px; background: rgba(255,255,255,.11); }
+    .parameter input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid #091612; border-radius: 50%; background: var(--worker-color); }
+    .parameter input[type="range"]:disabled { cursor: not-allowed; }
+    .evidence-ledger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 13px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 11px;
+      color: rgba(247,255,249,.38);
+      font-size: 9px;
+    }
+    .evidence-ledger code { color: rgba(247,255,249,.66); font: 8px/1.4 var(--mono); text-align: right; }
+
     .value-section { position: relative; overflow: hidden; background: #dfe9df; }
     .value-section::after {
       content: "";
@@ -637,7 +874,8 @@
       .hero-copy { max-width: 760px; }
       .lab { max-width: 680px; width: 100%; }
       .hero-foot { grid-template-columns: 1fr repeat(3, .5fr); }
-      .idea-head, .value-grid, .evidence-top, .citation-grid, .artifact-grid { gap: 48px; }
+      .idea-head, .playground-head, .value-grid, .evidence-top, .citation-grid, .artifact-grid { gap: 48px; }
+      .explorer-shell { grid-template-columns: 1fr; }
     }
     @media (max-width: 820px) {
       .wrap { width: min(100% - 32px, 680px); }
@@ -647,7 +885,7 @@
       .hero-foot { grid-template-columns: 1fr 1fr 1fr; }
       .hero-foot > p { grid-column: 1 / -1; }
       .metric { padding-left: 0; border-left: 0; }
-      .idea-head, .value-grid, .evidence-top, .citation-grid, .artifact-grid { grid-template-columns: 1fr; }
+      .idea-head, .playground-head, .value-grid, .evidence-top, .citation-grid, .artifact-grid { grid-template-columns: 1fr; }
       .idea-aside { max-width: 620px; }
       .flow { grid-template-columns: 1fr 1fr; row-gap: 34px; }
       .flow::before { display: none; }
@@ -688,6 +926,19 @@
       .flow-node { grid-row: 1 / 4; width: 68px; height: 68px; margin: 0; border-radius: 20px; }
       .contract-row { padding: 16px; }
       .contract-label { width: 100%; margin-bottom: 6px; }
+      .playground-head { margin-bottom: 38px; }
+      .explorer-visual, .explorer-controls { border-radius: 20px; }
+      .explorer-visual { padding: 10px; }
+      .explorer-card-head { align-items: flex-start; flex-direction: column; gap: 7px; }
+      .explorer-status { max-width: 100%; text-align: left; }
+      #explorerChart { height: 310px; }
+      .explorer-stats { grid-template-columns: repeat(2, 1fr); }
+      .explorer-controls { padding: 16px; }
+      .controls-head { align-items: stretch; flex-direction: column; }
+      .sample-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .worker-controls { grid-template-columns: 1fr; }
+      .evidence-ledger { align-items: flex-start; flex-direction: column; }
+      .evidence-ledger code { text-align: left; }
       .value-card { grid-template-columns: 48px 1fr; gap: 12px; padding: 22px 18px; }
       .value-number { font-size: 30px; }
       .warning-band { align-items: flex-start; }
@@ -713,6 +964,7 @@
       </a>
       <div class="nav-links">
         <a href="#idea">The idea</a>
+        <a href="#explorer">Live explorer</a>
         <a href="#boundary">Boundaries</a>
         <a href="#citation">Citation</a>
         <a class="nav-pill" href="https://github.com/zozo123/boltzmann-mapreduce">GitHub ↗</a>
@@ -729,7 +981,7 @@
           <p class="hero-copy">Make every worker return an estimate, its uncertainty, and where its evidence came from. Then combine independent results without pretending every answer deserves an equal vote.</p>
           <div class="actions">
             <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read the corrected PDF</a>
-            <a class="button anchor" href="#idea">See the idea in 10 seconds</a>
+            <a class="button anchor" href="#explorer">Stress-test the reducer</a>
           </div>
           <div class="signal-strip" aria-label="Worker result ingredients">
             <span><i class="signal-dot" aria-hidden="true"></i> Estimate</span>
@@ -839,6 +1091,103 @@
           <span class="token">lineage[]</span>
           <span class="token">evidence_ids[]</span>
           <span class="token">metadata{}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="playground" id="explorer">
+      <div class="wrap">
+        <div class="playground-head">
+          <div>
+            <p class="section-label">Live fusion explorer</p>
+            <h2>Do not take the diagram on faith. Push it until it breaks.</h2>
+          </div>
+          <p class="lead">Drag worker peaks, change their uncertainty, remove a worker, stream new samples, or deliberately reuse evidence. The reducer updates in real time—and refuses a merge when provenance fails.</p>
+        </div>
+
+        <div class="explorer-shell">
+          <div class="explorer-visual">
+            <div class="explorer-card-head">
+              <span class="explorer-card-title">Information field · θ</span>
+              <span class="explorer-status" data-explorer-status data-tone="valid" aria-live="polite">Merge valid · 4 disjoint evidence sets</span>
+            </div>
+            <div class="explorer-chart-stage">
+              <canvas id="explorerChart" role="img" aria-label="Four adjustable worker distributions and their information-weighted pooled result">Four adjustable Gaussian worker factors combine into an information-weighted pooled result.</canvas>
+              <span class="chart-instruction">Drag a colored handle horizontally · wider curves carry less information</span>
+            </div>
+            <div class="explorer-legend" aria-label="Chart legend">
+              <span class="legend-item"><i class="legend-swatch" style="--legend-color:#7df0b7"></i>Worker A</span>
+              <span class="legend-item"><i class="legend-swatch" style="--legend-color:#83b5ff"></i>Worker B</span>
+              <span class="legend-item"><i class="legend-swatch" style="--legend-color:#f6b95f"></i>Worker C</span>
+              <span class="legend-item"><i class="legend-swatch" style="--legend-color:#f28b72"></i>Worker D</span>
+              <span class="legend-item"><i class="legend-swatch pooled"></i>Pooled factor</span>
+            </div>
+            <div class="explorer-stats" aria-label="Live reducer statistics">
+              <div class="explorer-stat"><span class="stat-label">Pooled θ̂</span><strong class="stat-value" data-explorer-pooled>4.99</strong></div>
+              <div class="explorer-stat"><span class="stat-label">95% interval</span><strong class="stat-value" data-explorer-ci>[4.88, 5.10]</strong></div>
+              <div class="explorer-stat"><span class="stat-label">Disagreement Δ/2</span><strong class="stat-value" data-explorer-energy>0.42</strong></div>
+              <div class="explorer-stat"><span class="stat-label">Total precision P</span><strong class="stat-value" data-explorer-precision>333.1</strong></div>
+            </div>
+            <p class="explorer-formula" data-explorer-formula>P = Σσₖ⁻² · q = ΣPₖθ̂ₖ · pooled θ̂ = P⁻¹q</p>
+          </div>
+
+          <aside class="explorer-controls" aria-label="Fusion explorer controls">
+            <div class="controls-head">
+              <div><h3>Worker controls</h3><p>All numbers are synthetic and illustrative.</p></div>
+              <div class="sample-actions">
+                <button class="sample-button" type="button" data-sample-once>New sample</button>
+                <button class="sample-button" type="button" data-auto-sample aria-pressed="false">▶ Stream</button>
+              </div>
+            </div>
+
+            <p class="preset-label">Stress presets</p>
+            <div class="explorer-presets" role="group" aria-label="Choose a fusion stress preset">
+              <button class="preset-button" type="button" data-explorer-preset="consensus" aria-pressed="true">Clean consensus</button>
+              <button class="preset-button" type="button" data-explorer-preset="unequal" aria-pressed="false">Unequal information</button>
+              <button class="preset-button" type="button" data-explorer-preset="falsePrecision" aria-pressed="false">False precision</button>
+              <button class="preset-button" type="button" data-explorer-preset="overlap" aria-pressed="false">Evidence overlap</button>
+            </div>
+
+            <div class="worker-controls">
+              <article class="worker-control" data-explorer-worker="0" style="--worker-color:#7df0b7">
+                <div class="worker-control-head">
+                  <div class="worker-identity"><i class="worker-dot" aria-hidden="true"></i><span class="worker-name">Worker A</span><code class="worker-evidence" data-worker-evidence>E-01</code></div>
+                  <label class="include-toggle"><input type="checkbox" data-worker-enabled checked aria-label="Include Worker A"> include</label>
+                </div>
+                <label class="parameter"><span class="parameter-head"><span>estimate θ̂</span><output data-mean-output>4.86</output></span><input type="range" min="4.30" max="5.70" step="0.01" value="4.86" data-mean-control aria-label="Worker A estimate"></label>
+                <label class="parameter"><span class="parameter-head"><span>standard error σ</span><output data-sigma-output>0.16</output></span><input type="range" min="0.04" max="0.45" step="0.01" value="0.16" data-sigma-control aria-label="Worker A standard error"></label>
+              </article>
+
+              <article class="worker-control" data-explorer-worker="1" style="--worker-color:#83b5ff">
+                <div class="worker-control-head">
+                  <div class="worker-identity"><i class="worker-dot" aria-hidden="true"></i><span class="worker-name">Worker B</span><code class="worker-evidence" data-worker-evidence>E-02</code></div>
+                  <label class="include-toggle"><input type="checkbox" data-worker-enabled checked aria-label="Include Worker B"> include</label>
+                </div>
+                <label class="parameter"><span class="parameter-head"><span>estimate θ̂</span><output data-mean-output>5.02</output></span><input type="range" min="4.30" max="5.70" step="0.01" value="5.02" data-mean-control aria-label="Worker B estimate"></label>
+                <label class="parameter"><span class="parameter-head"><span>standard error σ</span><output data-sigma-output>0.09</output></span><input type="range" min="0.04" max="0.45" step="0.01" value="0.09" data-sigma-control aria-label="Worker B standard error"></label>
+              </article>
+
+              <article class="worker-control" data-explorer-worker="2" style="--worker-color:#f6b95f">
+                <div class="worker-control-head">
+                  <div class="worker-identity"><i class="worker-dot" aria-hidden="true"></i><span class="worker-name">Worker C</span><code class="worker-evidence" data-worker-evidence>E-03</code></div>
+                  <label class="include-toggle"><input type="checkbox" data-worker-enabled checked aria-label="Include Worker C"> include</label>
+                </div>
+                <label class="parameter"><span class="parameter-head"><span>estimate θ̂</span><output data-mean-output>4.95</output></span><input type="range" min="4.30" max="5.70" step="0.01" value="4.95" data-mean-control aria-label="Worker C estimate"></label>
+                <label class="parameter"><span class="parameter-head"><span>standard error σ</span><output data-sigma-output>0.20</output></span><input type="range" min="0.04" max="0.45" step="0.01" value="0.20" data-sigma-control aria-label="Worker C standard error"></label>
+              </article>
+
+              <article class="worker-control" data-explorer-worker="3" style="--worker-color:#f28b72">
+                <div class="worker-control-head">
+                  <div class="worker-identity"><i class="worker-dot" aria-hidden="true"></i><span class="worker-name">Worker D</span><code class="worker-evidence" data-worker-evidence>E-04</code></div>
+                  <label class="include-toggle"><input type="checkbox" data-worker-enabled checked aria-label="Include Worker D"> include</label>
+                </div>
+                <label class="parameter"><span class="parameter-head"><span>estimate θ̂</span><output data-mean-output>5.08</output></span><input type="range" min="4.30" max="5.70" step="0.01" value="5.08" data-mean-control aria-label="Worker D estimate"></label>
+                <label class="parameter"><span class="parameter-head"><span>standard error σ</span><output data-sigma-output>0.14</output></span><input type="range" min="0.04" max="0.45" step="0.01" value="0.14" data-sigma-control aria-label="Worker D standard error"></label>
+              </article>
+            </div>
+
+            <div class="evidence-ledger"><span>Evidence ledger</span><code data-evidence-ledger>E-01 · E-02 · E-03 · E-04</code></div>
+          </aside>
         </div>
       </div>
     </section>
@@ -1112,6 +1461,411 @@
       buttons.forEach(button => button.addEventListener("click", () => render(button.dataset.scenario)));
       window.addEventListener("resize", draw, { passive: true });
       render(active);
+    })();
+
+    (() => {
+      const canvas = document.getElementById("explorerChart");
+      if (!canvas) return;
+
+      const context = canvas.getContext("2d");
+      const colors = ["#7df0b7", "#83b5ff", "#f6b95f", "#f28b72"];
+      const cards = [...document.querySelectorAll("[data-explorer-worker]")];
+      const presetButtons = [...document.querySelectorAll("[data-explorer-preset]")];
+      const status = document.querySelector("[data-explorer-status]");
+      const pooledOutput = document.querySelector("[data-explorer-pooled]");
+      const ciOutput = document.querySelector("[data-explorer-ci]");
+      const energyOutput = document.querySelector("[data-explorer-energy]");
+      const precisionOutput = document.querySelector("[data-explorer-precision]");
+      const formulaOutput = document.querySelector("[data-explorer-formula]");
+      const ledgerOutput = document.querySelector("[data-evidence-ledger]");
+      const sampleButton = document.querySelector("[data-sample-once]");
+      const autoButton = document.querySelector("[data-auto-sample]");
+
+      const presets = {
+        consensus: [
+          { mean: 4.86, sigma: 0.16, evidence: "E-01", bias: 0, enabled: true },
+          { mean: 5.02, sigma: 0.09, evidence: "E-02", bias: 0, enabled: true },
+          { mean: 4.95, sigma: 0.20, evidence: "E-03", bias: 0, enabled: true },
+          { mean: 5.08, sigma: 0.14, evidence: "E-04", bias: 0, enabled: true }
+        ],
+        unequal: [
+          { mean: 4.72, sigma: 0.36, evidence: "E-01", bias: 0, enabled: true },
+          { mean: 5.02, sigma: 0.07, evidence: "E-02", bias: 0, enabled: true },
+          { mean: 5.19, sigma: 0.42, evidence: "E-03", bias: 0, enabled: true },
+          { mean: 4.91, sigma: 0.23, evidence: "E-04", bias: 0, enabled: true }
+        ],
+        falsePrecision: [
+          { mean: 4.94, sigma: 0.16, evidence: "E-01", bias: 0, enabled: true },
+          { mean: 5.05, sigma: 0.13, evidence: "E-02", bias: 0, enabled: true },
+          { mean: 4.88, sigma: 0.20, evidence: "E-03", bias: 0, enabled: true },
+          { mean: 5.58, sigma: 0.04, evidence: "E-04", bias: 0.56, enabled: true }
+        ],
+        overlap: [
+          { mean: 4.92, sigma: 0.16, evidence: "E-01", bias: 0, enabled: true },
+          { mean: 5.02, sigma: 0.12, evidence: "E-02", bias: 0, enabled: true },
+          { mean: 5.08, sigma: 0.14, evidence: "E-01", bias: 0, enabled: true },
+          { mean: 4.97, sigma: 0.18, evidence: "E-04", bias: 0, enabled: true }
+        ]
+      };
+
+      const xMin = 4.25;
+      const xMax = 5.75;
+      let workers = [];
+      let activePreset = "consensus";
+      let autoTimer = null;
+      let dragIndex = null;
+      let dragPointer = null;
+      let handlePositions = [];
+      let drawFrame = null;
+
+      function clonePreset(name) {
+        return presets[name].map(worker => ({ ...worker }));
+      }
+
+      function clamp(value, minimum, maximum) {
+        return Math.min(maximum, Math.max(minimum, value));
+      }
+
+      function rgba(hex, alpha) {
+        const value = Number.parseInt(hex.slice(1), 16);
+        return `rgba(${value >> 16}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+      }
+
+      function gaussian(x, mean, sigma) {
+        return Math.exp(-0.5 * ((x - mean) / sigma) ** 2);
+      }
+
+      function analyze() {
+        const enabled = workers.map((worker, index) => ({ ...worker, index })).filter(worker => worker.enabled);
+        const evidenceCounts = new Map();
+        enabled.forEach(worker => evidenceCounts.set(worker.evidence, (evidenceCounts.get(worker.evidence) || 0) + 1));
+        const duplicates = [...evidenceCounts.entries()].filter(([, count]) => count > 1).map(([id]) => id);
+        if (!enabled.length) return { enabled, duplicates, reducible: false, total: 0, mean: 0, sigma: 0, disagreement: 0 };
+
+        const weighted = enabled.map(worker => ({ ...worker, precision: 1 / (worker.sigma * worker.sigma) }));
+        const total = weighted.reduce((sum, worker) => sum + worker.precision, 0);
+        const mean = weighted.reduce((sum, worker) => sum + worker.mean * worker.precision, 0) / total;
+        const sigma = Math.sqrt(1 / total);
+        const disagreement = 0.5 * weighted.reduce((sum, worker) => sum + worker.precision * ((worker.mean - mean) ** 2), 0);
+        return { enabled: weighted, duplicates, reducible: enabled.length >= 2 && duplicates.length === 0, total, mean, sigma, disagreement };
+      }
+
+      function chartLayout(width, height) {
+        return { left: 42, right: width - 18, top: 26, baseline: height - 52, height: height - 91 };
+      }
+
+      function toChartX(value, layout) {
+        return layout.left + ((value - xMin) / (xMax - xMin)) * (layout.right - layout.left);
+      }
+
+      function drawChart() {
+        const result = analyze();
+        const box = canvas.getBoundingClientRect();
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.round(box.width * ratio));
+        canvas.height = Math.max(1, Math.round(box.height * ratio));
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        context.clearRect(0, 0, box.width, box.height);
+
+        const layout = chartLayout(box.width, box.height);
+        const plotWidth = layout.right - layout.left;
+        const ticks = [4.4, 4.8, 5.2, 5.6];
+
+        context.font = "9px SFMono-Regular, Consolas, monospace";
+        context.fillStyle = "rgba(247,255,249,.26)";
+        context.textAlign = "center";
+        ticks.forEach(tick => {
+          const x = toChartX(tick, layout);
+          context.strokeStyle = "rgba(255,255,255,.055)";
+          context.lineWidth = 1;
+          context.beginPath();
+          context.moveTo(x + .5, layout.top);
+          context.lineTo(x + .5, layout.baseline);
+          context.stroke();
+          context.fillText(tick.toFixed(1), x, layout.baseline + 39);
+        });
+
+        for (let row = 0; row < 4; row += 1) {
+          const y = layout.top + (layout.height / 3) * row;
+          context.strokeStyle = "rgba(255,255,255,.04)";
+          context.beginPath();
+          context.moveTo(layout.left, y + .5);
+          context.lineTo(layout.right, y + .5);
+          context.stroke();
+        }
+
+        context.strokeStyle = "rgba(255,255,255,.13)";
+        context.beginPath();
+        context.moveTo(layout.left, layout.baseline + .5);
+        context.lineTo(layout.right, layout.baseline + .5);
+        context.stroke();
+
+        if (result.reducible) {
+          const ciLow = toChartX(result.mean - 1.96 * result.sigma, layout);
+          const ciHigh = toChartX(result.mean + 1.96 * result.sigma, layout);
+          const band = context.createLinearGradient(ciLow, 0, ciHigh, 0);
+          band.addColorStop(0, "rgba(125,240,183,0)");
+          band.addColorStop(.5, "rgba(125,240,183,.10)");
+          band.addColorStop(1, "rgba(125,240,183,0)");
+          context.fillStyle = band;
+          context.fillRect(ciLow, layout.top, Math.max(1, ciHigh - ciLow), layout.height);
+        }
+
+        handlePositions = [];
+        result.enabled.forEach(worker => {
+          const color = colors[worker.index];
+          const peakHeight = layout.height * .5;
+          context.beginPath();
+          context.moveTo(layout.left, layout.baseline);
+          for (let px = layout.left; px <= layout.right; px += 1) {
+            const x = xMin + ((px - layout.left) / plotWidth) * (xMax - xMin);
+            const y = layout.baseline - gaussian(x, worker.mean, worker.sigma) * peakHeight;
+            context.lineTo(px, y);
+          }
+          context.lineTo(layout.right, layout.baseline);
+          context.closePath();
+          context.fillStyle = rgba(color, .035);
+          context.fill();
+
+          context.beginPath();
+          for (let px = layout.left; px <= layout.right; px += 1) {
+            const x = xMin + ((px - layout.left) / plotWidth) * (xMax - xMin);
+            const y = layout.baseline - gaussian(x, worker.mean, worker.sigma) * peakHeight;
+            if (px === layout.left) context.moveTo(px, y); else context.lineTo(px, y);
+          }
+          context.strokeStyle = rgba(color, .68);
+          context.lineWidth = dragIndex === worker.index ? 2.4 : 1.5;
+          context.stroke();
+
+          const handleX = toChartX(worker.mean, layout);
+          const handleY = layout.baseline + 16;
+          handlePositions[worker.index] = handleX;
+          context.beginPath();
+          context.arc(handleX, handleY, dragIndex === worker.index ? 7 : 5, 0, Math.PI * 2);
+          context.fillStyle = color;
+          context.shadowColor = color;
+          context.shadowBlur = dragIndex === worker.index ? 15 : 8;
+          context.fill();
+          context.shadowBlur = 0;
+        });
+
+        if (result.reducible) {
+          const pooledHeight = layout.height * .88;
+          context.beginPath();
+          for (let px = layout.left; px <= layout.right; px += 1) {
+            const x = xMin + ((px - layout.left) / plotWidth) * (xMax - xMin);
+            const y = layout.baseline - gaussian(x, result.mean, result.sigma) * pooledHeight;
+            if (px === layout.left) context.moveTo(px, y); else context.lineTo(px, y);
+          }
+          context.strokeStyle = "#7df0b7";
+          context.lineWidth = 3;
+          context.shadowColor = "rgba(125,240,183,.7)";
+          context.shadowBlur = 12;
+          context.stroke();
+          context.shadowBlur = 0;
+
+          const labelX = clamp(toChartX(result.mean, layout), layout.left + 34, layout.right - 34);
+          context.fillStyle = "#7df0b7";
+          context.font = "800 8px Inter, system-ui, sans-serif";
+          context.textAlign = "center";
+          context.fillText("POOLED", labelX, layout.top + 3);
+        } else {
+          context.fillStyle = "rgba(242,139,114,.78)";
+          context.font = "800 10px Inter, system-ui, sans-serif";
+          context.textAlign = "right";
+          context.fillText(result.duplicates.length ? "PROVENANCE CHECK FAILED" : "ADD AT LEAST TWO WORKERS", layout.right, layout.top + 3);
+        }
+
+        context.fillStyle = "rgba(247,255,249,.28)";
+        context.font = "8px SFMono-Regular, Consolas, monospace";
+        context.textAlign = "right";
+        context.fillText("estimate θ →", layout.right, layout.baseline + 39);
+      }
+
+      function scheduleDraw() {
+        if (drawFrame !== null) cancelAnimationFrame(drawFrame);
+        drawFrame = requestAnimationFrame(() => {
+          drawFrame = null;
+          drawChart();
+        });
+      }
+
+      function renderControls() {
+        cards.forEach((card, index) => {
+          const worker = workers[index];
+          const meanControl = card.querySelector("[data-mean-control]");
+          const sigmaControl = card.querySelector("[data-sigma-control]");
+          const enabledControl = card.querySelector("[data-worker-enabled]");
+          meanControl.value = worker.mean.toFixed(2);
+          sigmaControl.value = worker.sigma.toFixed(2);
+          enabledControl.checked = worker.enabled;
+          meanControl.disabled = !worker.enabled;
+          sigmaControl.disabled = !worker.enabled;
+          card.querySelector("[data-mean-output]").textContent = worker.mean.toFixed(2);
+          card.querySelector("[data-sigma-output]").textContent = worker.sigma.toFixed(2);
+          card.querySelector("[data-worker-evidence]").textContent = worker.evidence;
+          card.classList.toggle("is-disabled", !worker.enabled);
+          card.classList.toggle("is-dragging", dragIndex === index);
+        });
+        ledgerOutput.textContent = workers.filter(worker => worker.enabled).map(worker => worker.evidence).join(" · ") || "no evidence selected";
+      }
+
+      function renderOutputs() {
+        const result = analyze();
+        if (!result.reducible) {
+          pooledOutput.textContent = result.duplicates.length ? "BLOCKED" : "—";
+          ciOutput.textContent = result.duplicates.length ? "overlap" : "need 2 workers";
+          energyOutput.textContent = "—";
+          precisionOutput.textContent = "—";
+          if (result.duplicates.length) {
+            status.textContent = `Merge blocked · ${result.duplicates.join(", ")} counted twice`;
+            formulaOutput.textContent = "Not reduced: repeated evidence identifiers must be resolved or explicitly modeled.";
+          } else {
+            status.textContent = "Merge blocked · select at least two workers";
+            formulaOutput.textContent = "Not reduced: a reduction requires at least two compatible summaries.";
+          }
+          status.dataset.tone = "blocked";
+        } else {
+          const low = result.mean - 1.96 * result.sigma;
+          const high = result.mean + 1.96 * result.sigma;
+          pooledOutput.textContent = result.mean.toFixed(3);
+          ciOutput.textContent = `[${low.toFixed(2)}, ${high.toFixed(2)}]`;
+          energyOutput.textContent = result.disagreement.toFixed(2);
+          precisionOutput.textContent = result.total.toFixed(1);
+          if (result.disagreement >= 6) {
+            status.textContent = "Merge algebra valid · conflict is high";
+            status.dataset.tone = "warning";
+          } else {
+            status.textContent = `Merge valid · ${result.enabled.length} disjoint evidence sets`;
+            status.dataset.tone = "valid";
+          }
+          formulaOutput.textContent = `P = ${result.total.toFixed(1)} · SE = ${result.sigma.toFixed(3)} · Δ/2 = ${result.disagreement.toFixed(2)} · θ̂ = P⁻¹q`;
+        }
+
+        canvas.setAttribute("aria-label", result.reducible
+          ? `${result.enabled.length} adjustable worker distributions produce a pooled estimate of ${result.mean.toFixed(3)} with disagreement energy ${result.disagreement.toFixed(2)}.`
+          : `Worker distributions are shown, but the merge is blocked because ${result.duplicates.length ? "evidence identifiers overlap" : "fewer than two workers are selected"}.`);
+        scheduleDraw();
+      }
+
+      function renderAll() {
+        renderControls();
+        renderOutputs();
+      }
+
+      function markCustom() {
+        activePreset = "custom";
+        presetButtons.forEach(button => button.setAttribute("aria-pressed", "false"));
+      }
+
+      function stopAuto() {
+        if (autoTimer !== null) clearInterval(autoTimer);
+        autoTimer = null;
+        autoButton.setAttribute("aria-pressed", "false");
+        autoButton.textContent = "▶ Stream";
+      }
+
+      function applyPreset(name) {
+        stopAuto();
+        activePreset = name;
+        workers = clonePreset(name);
+        presetButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.explorerPreset === name)));
+        renderAll();
+      }
+
+      function normalRandom() {
+        const u = Math.max(Number.EPSILON, Math.random());
+        const v = Math.max(Number.EPSILON, Math.random());
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      }
+
+      function sampleOnce() {
+        workers.forEach(worker => {
+          if (!worker.enabled) return;
+          const center = 5 + (worker.bias || 0);
+          worker.mean = clamp(center + normalRandom() * worker.sigma * .72, 4.3, 5.7);
+        });
+        renderAll();
+      }
+
+      function toggleAuto() {
+        if (autoTimer !== null) {
+          stopAuto();
+          return;
+        }
+        sampleOnce();
+        autoTimer = window.setInterval(sampleOnce, 900);
+        autoButton.setAttribute("aria-pressed", "true");
+        autoButton.textContent = "Ⅱ Pause";
+      }
+
+      cards.forEach((card, index) => {
+        const meanControl = card.querySelector("[data-mean-control]");
+        const sigmaControl = card.querySelector("[data-sigma-control]");
+        const enabledControl = card.querySelector("[data-worker-enabled]");
+
+        meanControl.addEventListener("input", event => {
+          workers[index].mean = Number(event.target.value);
+          markCustom();
+          renderAll();
+        });
+        sigmaControl.addEventListener("input", event => {
+          workers[index].sigma = Number(event.target.value);
+          markCustom();
+          renderAll();
+        });
+        enabledControl.addEventListener("change", event => {
+          workers[index].enabled = event.target.checked;
+          markCustom();
+          renderAll();
+        });
+      });
+
+      presetButtons.forEach(button => button.addEventListener("click", () => applyPreset(button.dataset.explorerPreset)));
+      sampleButton.addEventListener("click", sampleOnce);
+      autoButton.addEventListener("click", toggleAuto);
+
+      canvas.addEventListener("pointerdown", event => {
+        const box = canvas.getBoundingClientRect();
+        const pointerX = event.clientX - box.left;
+        const candidates = handlePositions.map((x, index) => ({ x, index })).filter(item => Number.isFinite(item.x) && workers[item.index].enabled);
+        candidates.sort((a, b) => Math.abs(a.x - pointerX) - Math.abs(b.x - pointerX));
+        if (!candidates.length || Math.abs(candidates[0].x - pointerX) > 22) return;
+        dragIndex = candidates[0].index;
+        dragPointer = event.pointerId;
+        canvas.setPointerCapture(event.pointerId);
+        renderControls();
+        scheduleDraw();
+        event.preventDefault();
+      });
+
+      canvas.addEventListener("pointermove", event => {
+        if (dragIndex === null || event.pointerId !== dragPointer) return;
+        const box = canvas.getBoundingClientRect();
+        const layout = chartLayout(box.width, box.height);
+        const pointerX = clamp(event.clientX - box.left, layout.left, layout.right);
+        workers[dragIndex].mean = xMin + ((pointerX - layout.left) / (layout.right - layout.left)) * (xMax - xMin);
+        markCustom();
+        renderAll();
+        event.preventDefault();
+      });
+
+      function endDrag(event) {
+        if (event.pointerId !== dragPointer) return;
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        dragIndex = null;
+        dragPointer = null;
+        renderControls();
+        scheduleDraw();
+      }
+
+      canvas.addEventListener("pointerup", endDrag);
+      canvas.addEventListener("pointercancel", endDrag);
+      document.addEventListener("visibilitychange", () => { if (document.hidden) stopAuto(); });
+      window.addEventListener("resize", scheduleDraw, { passive: true });
+      if ("ResizeObserver" in window) new ResizeObserver(scheduleDraw).observe(canvas);
+
+      applyPreset("consensus");
     })();
   </script>
 </body>

@@ -4,6 +4,11 @@
 what parallel workers should return when their outputs are noisy: an estimate,
 uncertainty, evidence provenance, and fork lineage rather than an unexplained scalar.
 
+Explore the idea interactively in the
+[live fusion explorer](https://zozo123.github.io/boltzmann-mapreduce/#explorer),
+including false-precision and repeated-evidence failure modes, or read the
+[corrected repository PDF](https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf).
+
 For disjoint evidence about a common parameter, the statistical core uses established
 inverse-information/confidence-distribution pooling. Under local asymptotic normality,
 the Gaussian factor can be written

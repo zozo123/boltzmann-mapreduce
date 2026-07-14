@@ -35,6 +35,12 @@ def _verify_site_contract() -> None:
         "https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/"
         "main/docs/uncertainty-aware-reduction.pdf",
         "uv run --locked python scripts/verify_e2e.py",
+        'id="explorer"',
+        'id="explorerChart"',
+        'data-explorer-preset="falsePrecision"',
+        'data-explorer-preset="overlap"',
+        "data-worker-enabled",
+        "data-auto-sample",
     )
     missing = [value for value in required if value not in html]
     if missing:
