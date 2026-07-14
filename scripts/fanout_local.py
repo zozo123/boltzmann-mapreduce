@@ -2,7 +2,7 @@
 its uncertainty scale with fanout, cheaply and without a sandbox quota. This is
 the LOCAL backend (OS process forks), distinct from the islo microVM curve.
 
-    uv run python scripts/fanout_local.py
+    uv run --locked python scripts/fanout_local.py
 """
 import time
 import numpy as np

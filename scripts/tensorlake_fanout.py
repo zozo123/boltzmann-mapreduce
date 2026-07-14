@@ -5,10 +5,11 @@ each, and measures create and round-trip latency. Unlike the islo backend, this
 script does not restore a named shared snapshot; its results must not be labeled
 as snapshot-fork measurements.
 
-Setup: `uv pip install tensorlake` and export TENSORLAKE_API_KEY (never committed).
+The Tensorlake SDK is locked as an optional project extra. Export TENSORLAKE_API_KEY
+(never committed), then run:
 
-    uv run python scripts/tensorlake_fanout.py            # ladder 4..1024, 8 concurrent
-    uv run python scripts/tensorlake_fanout.py 8 4 16 64  # concurrency 8, ladder 4 16 64
+    uv run --locked --extra tensorlake python scripts/tensorlake_fanout.py
+    uv run --locked --extra tensorlake python scripts/tensorlake_fanout.py 8 4 16 64
 """
 from __future__ import annotations
 

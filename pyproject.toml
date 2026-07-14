@@ -9,11 +9,18 @@ dependencies = [
     "matplotlib>=3.8",
 ]
 
+[project.optional-dependencies]
+daytona = ["daytona>=0.197.0"]
+tensorlake = ["tensorlake>=0.5.70"]
+
 [project.scripts]
 bmr-worker = "bmr.worker:main"
 
 [dependency-groups]
-dev = ["pytest>=7.0"]
+dev = [
+    "hatchling>=1.27",
+    "pytest>=7.0",
+]
 
 [tool.uv]
 package = true

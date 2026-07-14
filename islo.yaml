@@ -1,11 +1,11 @@
 # Islo configuration for the Boltzmann MapReduce demo.
 # Build a parent sandbox, snapshot it once, then fork one sandbox per shard.
-# The reproducible fork entry point is the direct `uv run` worker. An on-box AI
+# The reproducible fork entry point is the direct `uv run --locked` worker. An on-box AI
 # harness is optional and is not used for the committed deterministic evidence.
 #
 #   islo use bmr-base --source github://zozo123/boltzmann-mapreduce -- true
 #   islo snapshot save bmr-base --name bmr-base
-#   uv run python demo.py --backend islo --scenario mean
+#   uv run --locked python demo.py --backend islo --scenario mean
 #
 # The default islo image ships without Python, so the setup_script installs uv
 # (which provides a managed Python) and syncs the project's dependencies. We use
@@ -15,4 +15,4 @@ sandbox: boltzmann-mapreduce
 setup_script: |
   curl -LsSf https://astral.sh/uv/install.sh | sh
   export PATH="$HOME/.local/bin:$PATH"
-  uv sync
+  uv sync --locked

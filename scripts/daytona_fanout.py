@@ -5,10 +5,11 @@ each, and measures create and round-trip latency. Unlike the islo backend, this
 script does not restore a named shared snapshot; its results must not be labeled
 as snapshot-fork measurements.
 
-Setup: `uv pip install daytona` and export DAYTONA_API_KEY (never hard-coded or committed).
+The Daytona SDK is locked as an optional project extra. Export DAYTONA_API_KEY
+(never hard-coded or committed), then run:
 
-    uv run python scripts/daytona_fanout.py            # ladder 4..1024, 32 concurrent
-    uv run python scripts/daytona_fanout.py 32 4 16 64 # concurrency 32, ladder 4 16 64
+    uv run --locked --extra daytona python scripts/daytona_fanout.py
+    uv run --locked --extra daytona python scripts/daytona_fanout.py 32 4 16 64
 """
 from __future__ import annotations
 

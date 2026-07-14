@@ -20,28 +20,28 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
       - run: uv sync --locked
-      - run: uv run pytest -q
-      - run: uv run python -m compileall -q bmr scripts demo.py
+      - run: uv run --locked python scripts/verify_e2e.py --skip-paper
 
   paper:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
       - name: Install LaTeX
         run: |
           sudo apt-get update
           sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-fonts-recommended
-      - name: Build paper
-        working-directory: paper
-        run: |
-          mkdir -p /tmp/bmr-empty-texmf
-          export TEXMFHOME=/tmp/bmr-empty-texmf
-          pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
-          bibtex main_5pp
-          pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
-          pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
-          ! grep -Eq "Overfull|Citation .* undefined|undefined references" main_5pp.log
+      - run: uv sync --locked
+      - name: Verify complete release
+        run: uv run --locked python scripts/verify_e2e.py
+      - name: Verify locked provider SDK extras
+        run: >-
+          uv run --locked --extra daytona --extra tensorlake python -c
+          "import scripts.daytona_fanout, scripts.tensorlake_fanout"
       - uses: actions/upload-artifact@v4
         with:
           name: revised-paper
-          path: paper/main_5pp.pdf
+          path: output/pdf/uncertainty-aware-reduction.pdf

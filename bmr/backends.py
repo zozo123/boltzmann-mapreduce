@@ -43,20 +43,21 @@ class LocalBackend:
 class IsloBackend:
     """Snapshot-once, fork-per-shard on islo sandboxes.
 
-    Setup (once); islo.yaml's setup_script installs uv and runs `uv sync`::
+    Setup (once); islo.yaml's setup_script installs uv and runs `uv sync --locked`::
 
         islo use bmr-base --source github://<owner>/<repo> -- true
         islo snapshot save bmr-base --name bmr-base
 
     Per shard (fork); the entry point is an on-box AI harness when ``harness`` is
-    set, else a direct ``uv run`` of the worker::
+    set, else a direct ``uv run --locked`` of the worker::
 
         islo use bmr-shard-<k> --snapshot bmr-base --workdir <repo> \
             -e SHARD_B64=<base64-json> --delete-after <n> \
             --agent claude --task "<run the worker, relay its output>"
         # or, harness=None:
         islo use bmr-shard-<k> --snapshot bmr-base --workdir <repo> \
-            -e SHARD_B64=<base64-json> --delete-after <n> -- uv run python -m bmr.worker
+            -e SHARD_B64=<base64-json> --delete-after <n> \
+            -- uv run --locked python -m bmr.worker
     """
 
     def __init__(self, base_snapshot: str = "bmr-base", delete_after: int = 180,
@@ -76,7 +77,7 @@ class IsloBackend:
     # The task handed to the on-box AI harness. It must run the worker and print
     # its output verbatim so the sentinel payload survives.
     HARNESS_TASK = (
-        "Run the shell command `uv run python -m bmr.worker` in the current "
+        "Run the shell command `uv run --locked python -m bmr.worker` in the current "
         "directory and print its stdout exactly as produced. It reads the shard "
         "from the SHARD_B64 environment variable and prints a single line wrapped "
         "in __BMR__ markers. Do not edit any files; only run it and relay the line."
@@ -86,7 +87,7 @@ class IsloBackend:
     def ensure_base(self, repo_source: str) -> list[list[str]]:
         """Return the islo commands that build + snapshot the parent sandbox.
 
-        The repo's islo.yaml setup_script installs uv and runs `uv sync`, so the
+        The repo's islo.yaml setup_script installs uv and runs `uv sync --locked`, so the
         snapshot carries a locked, uv-managed Python environment.
         """
         return [
@@ -112,7 +113,7 @@ class IsloBackend:
             cmd += ["--agent", self.harness, "--task", self.HARNESS_TASK]
         else:
             # Fallback for when no harness is needed: run the worker directly via uv.
-            cmd += ["--", "uv", "run", "python", "-m", "bmr.worker"]
+            cmd += ["--", "uv", "run", "--locked", "python", "-m", "bmr.worker"]
         t0 = time.perf_counter()
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         wall_s = time.perf_counter() - t0

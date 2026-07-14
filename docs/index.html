@@ -228,7 +228,7 @@
         <div>
           <div class="eyebrow">Reproduce locally</div>
           <h2>One command path, auditable outputs.</h2>
-          <p>The reducer uses Cholesky solves, validates positive-definite information matrices, serializes provenance, and exposes disagreement energy. The local backend is a platform-dependent process pool.</p>
+          <p>The reducer uses Cholesky solves, validates positive-definite information matrices, serializes provenance, and exposes disagreement energy. The full uv-locked command below verifies tests, package builds, every local path, and the PDF; the paper step requires <code>pdflatex</code> and <code>bibtex</code>.</p>
           <div class="actions">
             <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Open repository PDF</a>
             <a class="button" href="https://github.com/zozo123/boltzmann-mapreduce">Source + logs</a>
@@ -236,9 +236,8 @@
         </div>
         <div class="quickstart"><pre>git clone https://github.com/zozo123/boltzmann-mapreduce
 cd boltzmann-mapreduce
-uv sync
-uv run pytest -q
-uv run python demo.py --scenario mean --byzantine</pre></div>
+uv sync --locked
+uv run --locked python scripts/verify_e2e.py</pre></div>
       </div>
     </section>
   </main>

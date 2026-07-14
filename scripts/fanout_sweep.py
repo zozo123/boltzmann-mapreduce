@@ -4,8 +4,8 @@ client dispatch, scheduling, snapshot restoration, command execution, capture,
 and network round-trip; it is not an isolated restore-latency measurement.  Each
 worker runs ``true``.  Capacity failures are retained in the log.
 
-    uv run python scripts/fanout_sweep.py            # ladder 4..1024, 32 concurrent
-    uv run python scripts/fanout_sweep.py 32 4 16 64 # concurrency 32, ladder 4 16 64
+    uv run --locked python scripts/fanout_sweep.py            # ladder 4..1024, 32 concurrent
+    uv run --locked python scripts/fanout_sweep.py 32 4 16 64 # concurrency 32, ladder 4 16 64
 """
 from __future__ import annotations
 

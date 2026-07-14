@@ -73,10 +73,10 @@ cross-worker heterogeneity.
 ## Demo
 
 ```bash
-uv sync
-uv run pytest -q
-uv run python demo.py --scenario mean --byzantine
-uv run python demo.py --scenario logistic
+uv sync --locked
+uv run --locked python scripts/verify_e2e.py
+uv run --locked python demo.py --scenario mean --byzantine
+uv run --locked python demo.py --scenario logistic
 ```
 
 The local backend uses a platform-dependent Python process pool. The islo backend can

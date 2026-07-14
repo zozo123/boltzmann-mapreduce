@@ -65,14 +65,16 @@ not interpreted as an independence model.
 
 ## Quickstart
 
-All Python commands run under [`uv`](https://docs.astral.sh/uv/):
+All Python commands run from the checked-in [`uv`](https://docs.astral.sh/uv/)
+lockfile. The first command below verifies tests, compilation, package builds, and every
+local demo:
 
 ```bash
-uv sync
-uv run pytest -q
-uv run python demo.py --scenario mean --byzantine
-uv run python demo.py --scenario linreg
-uv run python demo.py --scenario logistic
+uv sync --locked
+uv run --locked python scripts/verify_e2e.py --skip-paper
+uv run --locked python demo.py --scenario mean --byzantine
+uv run --locked python demo.py --scenario linreg
+uv run --locked python demo.py --scenario logistic
 ```
 
 The local backend uses Python's platform-dependent process pool. It does not claim
@@ -84,16 +86,26 @@ copy-on-write or `fork()` semantics.
 islo login
 islo use bmr-base --source github://zozo123/boltzmann-mapreduce -- true
 islo snapshot save bmr-base --name bmr-base
-uv run python demo.py --backend islo --scenario mean
+uv run --locked python demo.py --backend islo --scenario mean
 ```
 
 The committed [`runs/islo_run.txt`](runs/islo_run.txt) records one four-shard execution
 from a named 141 MB snapshot. It is an execution-path existence proof, not an isolated
 microVM-restore benchmark.
 
-The Daytona and Tensorlake scripts create default sandboxes and run a trivial command.
-They do **not** restore the named islo snapshot, so their logs are platform-specific
-creation observations rather than comparable snapshot-fork measurements.
+The Daytona and Tensorlake SDKs are optional extras resolved in `uv.lock`; no mutable
+per-provider installation step is needed:
+
+```bash
+uv run --locked --extra daytona python scripts/daytona_fanout.py
+uv run --locked --extra tensorlake python scripts/tensorlake_fanout.py
+```
+
+These scripts create default sandboxes and run a trivial command. They do **not**
+restore the named islo snapshot, so their logs are platform-specific creation
+observations rather than comparable snapshot-fork measurements. They require provider
+credentials and may consume quota, so E2E checks compile the scripts and CI imports the
+locked SDKs but does not execute provider sweeps.
 
 ## Robustness scope
 
@@ -113,21 +125,23 @@ The revised paper is:
 > **Uncertainty-Aware Reduction for Forkable Sandboxes: A Thermodynamic View of
 > Confidence-Distribution Pooling**
 
-Sources are in `paper/`. Rebuild with:
+Sources are in `paper/`. The uv-driven builder isolates TeX intermediates in a temporary
+directory, rejects release-blocking warnings, and publishes identical PDF copies to
+`output/pdf/` and `docs/`:
 
 ```bash
-cd paper
-mkdir -p /tmp/bmr-empty-texmf ../output/pdf ../docs
-TEXMFHOME=/tmp/bmr-empty-texmf pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
-TEXMFHOME=/tmp/bmr-empty-texmf bibtex main_5pp
-TEXMFHOME=/tmp/bmr-empty-texmf pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
-TEXMFHOME=/tmp/bmr-empty-texmf pdflatex -interaction=nonstopmode -halt-on-error main_5pp.tex
-cp main_5pp.pdf ../output/pdf/uncertainty-aware-reduction.pdf
-cp main_5pp.pdf ../docs/uncertainty-aware-reduction.pdf
+uv run --locked python scripts/build_paper.py
 ```
 
-`TEXMFHOME` is isolated above to avoid incompatible user-level TeX packages. CI runs
-the Python suite on Python 3.10 and 3.12 and independently rebuilds the paper.
+The complete release check uses that builder after tests, compilation, and all local
+demos. It requires `pdflatex` and `bibtex` on `PATH`:
+
+```bash
+uv run --locked python scripts/verify_e2e.py
+```
+
+CI runs the Python path on Python 3.10 and 3.12 and runs this complete release check in
+the paper job.
 
 ## Evidence boundaries
 

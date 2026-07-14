@@ -6,9 +6,9 @@ pooling. Prints a per-shard table (with the T = 1/n convention), compares pooled
 vs the full-data estimator, optionally runs an outlier stress test, and saves
 three figures.
 
-    python demo.py --scenario mean --byzantine
-    python demo.py --scenario linreg --shards 16
-    python demo.py --backend islo --scenario mean      # requires: islo login
+    uv run --locked python demo.py --scenario mean --byzantine
+    uv run --locked python demo.py --scenario linreg --shards 16
+    uv run --locked python demo.py --backend islo --scenario mean  # requires: islo login
 """
 from __future__ import annotations
 
