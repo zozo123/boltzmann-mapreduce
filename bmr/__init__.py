@@ -1,4 +1,4 @@
-"""Uncertainty-aware confidence-distribution reduction for independent workers."""
+"""Evidence-aware Gaussian reduction for independent worker summaries."""
 from bmr.core import (
     CD, CanonicalSummary, Pooled, finalize_canonical,
     map_mean, map_linreg, map_logistic, reduce_partition,

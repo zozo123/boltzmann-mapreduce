@@ -11,14 +11,13 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{enumitem}
-\usepackage{graphicx}
-\graphicspath{{./}{figs/}}
+\usepackage{balance}
 \usepackage[hidelinks]{hyperref}
 \hypersetup{
-  pdftitle={Uncertainty-Aware Reduction for Forkable Sandboxes},
+  pdftitle={Evidence-Aware Reduction for Forkable Sandboxes},
   pdfauthor={Yossi Eliaz},
-  pdfsubject={Confidence-distribution pooling, provenance, and forkable execution},
-  pdfkeywords={distributed inference, confidence distributions, provenance, sandboxes}
+  pdfsubject={Evidence-aware reduction, provenance, and forkable execution},
+  pdfkeywords={distributed inference, evidence provenance, confidence distributions, forkable sandboxes}
 }
 
 \setlist{leftmargin=1.3em,topsep=1pt,itemsep=0pt,parsep=0pt}
@@ -36,8 +35,8 @@
 \titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
 \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
 
-\title{\vspace{-1.5em}\textbf{Uncertainty-Aware Reduction for Forkable Sandboxes}\\[-0.15em]
-\large A Thermodynamic View of Confidence-Distribution Pooling}
+\title{\vspace{-1.5em}\textbf{Evidence-Aware Reduction for Forkable Sandboxes}\\[-0.15em]
+\large Separating Execution Fan-Out from Independent Evidence}
 
 \author{%
   Yossi Eliaz\\
@@ -49,8 +48,9 @@
 \begin{document}
 \maketitle
 
-\input{body_5pp}
+\input{body}
 
+\balance
 \bibliographystyle{abbrv}
 \bibliography{refs}
 

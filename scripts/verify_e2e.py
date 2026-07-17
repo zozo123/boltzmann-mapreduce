@@ -17,8 +17,14 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PDF = ROOT / "output" / "pdf" / "uncertainty-aware-reduction.pdf"
-DOCS_PDF = ROOT / "docs" / "uncertainty-aware-reduction.pdf"
+PDF = ROOT / "output" / "pdf" / "evidence-aware-reduction.pdf"
+DOCS_PDF = ROOT / "docs" / "evidence-aware-reduction.pdf"
+PDF_ALIASES = (
+    ROOT / "submission" / "evidence-aware-reduction.pdf",
+    ROOT / "output" / "pdf" / "uncertainty-aware-reduction.pdf",
+    ROOT / "docs" / "uncertainty-aware-reduction.pdf",
+    ROOT / "docs" / "boltzmann-mapreduce.pdf",
+)
 
 
 def _run(label: str, command: list[str]) -> None:
@@ -33,7 +39,7 @@ def _verify_site_contract() -> None:
         "arXiv:2607.09689",
         "doi:10.48550/arXiv.2607.09689",
         "https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/"
-        "main/docs/uncertainty-aware-reduction.pdf",
+        "main/docs/evidence-aware-reduction.pdf",
         "uv run --locked python scripts/verify_e2e.py",
         'id="explorer"',
         'id="explorerChart"',
@@ -101,8 +107,12 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_paper:
         _run("paper", [sys.executable, "scripts/build_paper.py"])
 
-    if not PDF.is_file() or not DOCS_PDF.is_file() or PDF.read_bytes() != DOCS_PDF.read_bytes():
-        raise SystemExit("release PDF copies are missing or differ")
+    release_pdfs = (PDF, DOCS_PDF, *PDF_ALIASES)
+    if any(not path.is_file() for path in release_pdfs):
+        raise SystemExit("one or more release PDF copies are missing")
+    canonical_pdf = PDF.read_bytes()
+    if any(path.read_bytes() != canonical_pdf for path in release_pdfs[1:]):
+        raise SystemExit("release PDF copies differ")
     _verify_site_contract()
 
     scope = (

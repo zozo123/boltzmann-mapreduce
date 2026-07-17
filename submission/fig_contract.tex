@@ -1,0 +1,40 @@
+\begin{figure*}[t]
+\centering
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{c c c c c c c}
+\fbox{\parbox[c][0.92in][c]{0.13\textwidth}{\centering\small
+\textbf{Prepared state}\\
+model, prompt,\\repository, tests}}
+&
+$\Longrightarrow$
+&
+\begin{tabular}{c}
+\fbox{\parbox[c][0.25in][c]{0.205\textwidth}{\centering\scriptsize
+Worker A: $\mathcal E=\{e_1\}$, $\mathcal L=(r,A)$}}\\[-1pt]
+\fbox{\parbox[c][0.25in][c]{0.205\textwidth}{\centering\scriptsize
+Worker B: $\mathcal E=\{e_1\}$, $\mathcal L=(r,B)$}}\\[-1pt]
+\fbox{\parbox[c][0.25in][c]{0.205\textwidth}{\centering\scriptsize
+Worker C: $\mathcal E=\{e_3\}$, $\mathcal L=(r,C)$}}
+\end{tabular}
+&
+$\Longrightarrow$
+&
+\fbox{\parbox[c][0.92in][c]{0.19\textwidth}{\centering\small
+\textbf{Trust boundary}\\
+reject repeated $e_1$;\\
+record shared root $r$}}
+&
+$\Longrightarrow$
+&
+\fbox{\parbox[c][0.92in][c]{0.18\textwidth}{\centering\small
+\textbf{Canonical reducer}\\
+add $(P,q,c,N)$;\\
+return statistics\\and provenance}}
+\end{tabular}
+\caption{Execution isolation is not evidence independence. Separate workers A and B declare the
+same evidence $e_1$, which the exact-overlap guard rejects. Shared ancestry is transported even
+when identifiers differ, but the prototype does not yet turn that lineage into a correlation
+model.}
+\label{fig:contract}
+\end{figure*}

@@ -1,6 +1,6 @@
-"""Uncertainty-aware reduction for independent worker summaries.
+"""Evidence-aware Gaussian reduction for independent worker summaries.
 
-Each map worker emits a *confidence density*
+Each map worker emits a Gaussian/Wald confidence kernel
 
     h_k(theta)  proportional to  exp{ -beta_k * E_k(theta) },
     beta_k = n_k                       (under the per-observation convention)
@@ -10,8 +10,8 @@ where ``J_k`` is the **per-observation** information, so the *total* precision o
 a shard is ``n_k * J_k``.  For disjoint, statistically independent shards with a
 common target, the reduce phase combines Gaussian factors by adding their natural
 parameters.  This is established inverse-information/confidence-distribution
-pooling; the paper contributes an execution contract and thermodynamic reading,
-not a new estimator.
+pooling; the paper contributes an evidence-aware execution contract and trust
+boundary, not a new estimator.
 """
 from __future__ import annotations
 
@@ -241,10 +241,13 @@ def map_linreg(X, y, shard_id=None, backend="local") -> CD:
 class CanonicalSummary:
     """Mergeable Gaussian summary ``(P, q, c, N)`` plus provenance unions.
 
-    ``merge`` is associative and commutative algebraically. Literal overlap in
-    non-empty evidence identifiers is rejected by default; callers must opt in
-    explicitly when overlap is intentional and statistically modeled elsewhere.
-    Shared lineage is retained but not interpreted as an independence model.
+    The numeric state ``(P, q, c, N)`` merges associatively and commutatively.
+    Provenance follows separate semantics: evidence identifiers are canonicalized,
+    while lineage uses order-preserving deduplication and is therefore sensitive to
+    operand order. Literal overlap in non-empty evidence identifiers is rejected by
+    default; callers must opt in explicitly when overlap is intentional and
+    statistically modeled elsewhere. Shared lineage is retained but not interpreted
+    as an independence model.
     """
 
     precision: list[list[float]]
@@ -333,6 +336,8 @@ class Pooled:
     neg_log_Z: float
     disagreement_energy: float
     weights: dict
+    evidence_ids: tuple[str, ...] = ()
+    lineage: tuple[str, ...] = ()
 
     def se(self) -> np.ndarray:
         return np.sqrt(np.clip(np.diag(np.asarray(self.cov)), 0.0, None))
@@ -353,10 +358,19 @@ def finalize_canonical(summary: CanonicalSummary, *, weights: dict | None = None
     theta = np.linalg.solve(chol.T, np.linalg.solve(chol, info_theta))
     cov = np.linalg.solve(chol.T, np.linalg.solve(chol, np.eye(summary.p)))
     logdet = 2.0 * float(np.log(np.diag(chol)).sum())
-    disagreement = max(
-        0.0,
-        float(summary.quadratic_constant - info_theta @ theta),
+    explained_quadratic = float(info_theta @ theta)
+    raw_disagreement = float(summary.quadratic_constant - explained_quadratic)
+    disagreement_scale = max(
+        1.0,
+        abs(summary.quadratic_constant),
+        abs(explained_quadratic),
     )
+    roundoff_tolerance = 64.0 * np.finfo(float).eps * disagreement_scale
+    if raw_disagreement < -roundoff_tolerance:
+        raise ValueError(
+            "canonical quadratic constant is inconsistent with precision and information vector"
+        )
+    disagreement = max(0.0, raw_disagreement)
     log_Z = 0.5 * summary.p * np.log(2 * np.pi) - 0.5 * logdet - 0.5 * disagreement
     return Pooled(
         theta=[float(v) for v in theta],
@@ -366,6 +380,8 @@ def finalize_canonical(summary: CanonicalSummary, *, weights: dict | None = None
         neg_log_Z=float(-log_Z),
         disagreement_energy=float(0.5 * disagreement),
         weights=dict(weights or {}),
+        evidence_ids=tuple(summary.evidence_ids),
+        lineage=tuple(summary.lineage),
     )
 
 
@@ -479,8 +495,8 @@ def oracle_linreg(X_all, y_all) -> CD:
 
 # ----------------------------------------------------------------------------
 # Non-linear estimating function: logistic regression (IRLS / Fisher scoring).
-# Here the Gibbs energy is only the LEADING-ORDER (LAN) quadratic, so this is the
-# informative regime: the identity is exact only asymptotically.
+# Here the quadratic confidence kernel is a leading regular-asymptotic
+# approximation; the Gaussian identity is exact only for the approximating kernel.
 # ----------------------------------------------------------------------------
 def _irls_logistic(X: np.ndarray, y: np.ndarray, iters: int = 50, ridge: float = 1e-8):
     p = X.shape[1]

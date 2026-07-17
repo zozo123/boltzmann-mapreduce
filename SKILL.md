@@ -6,9 +6,9 @@ description: Use for combining independent, non-overlapping statistical summarie
 # Boltzmann MapReduce
 
 Use this package when independent workers return estimates with unequal information and
-you need an auditable Gaussian/confidence-distribution merge. The method is established
-inverse-information pooling expressed through a thermodynamic convention; it is not a
-general trust score or an automatic defense against confident agents.
+you need an evidence-aware Gaussian/confidence-distribution merge. The method is
+established inverse-information pooling; the optional thermodynamic notation is a naming
+convention, not a general trust score or an automatic defense against confident agents.
 
 ## Preconditions
 
@@ -17,7 +17,7 @@ Use `reduce_partition` only when all are true:
 - Workers target the same parameter and use compatible units.
 - Evidence is disjoint and statistical dependence is negligible or modeled elsewhere.
 - Each information matrix is a defensible uncertainty estimate.
-- Local Gaussian/LAN approximation is suitable, or the model is exactly quadratic.
+- A regular asymptotic Gaussian approximation is suitable, or the model is exactly quadratic.
 - Exact model-specific sufficient-statistic aggregation is unavailable or inappropriate.
 
 Do not multiply factors merely because workers ran in separate sandboxes. Isolation does
@@ -34,9 +34,11 @@ pooled = reduce_partition(cds)
 
 pooled.theta                 # information-weighted mode
 pooled.cov                   # inverse summed precision
-pooled.neg_log_Z             # exact -log integral of unnormalized factors
-pooled.disagreement_energy   # minimum summed quadratic energy
+pooled.neg_log_Z             # closed-form -log integral of unit-height factors
+pooled.disagreement_energy   # Delta/2, the minimum summed quadratic energy
 pooled.weights               # scalar precision shares only when p == 1
+pooled.evidence_ids          # canonicalized evidence labels
+pooled.lineage               # order-preserving lineage union
 ```
 
 A `CD` carries `theta_hat`, per-observation `info_per_obs`, positive `n`, `meta`,
@@ -49,7 +51,7 @@ For streaming or tree reduction, convert workers with
 
 ## Thermodynamic convention
 
-For `P_k = n_k J_k`, the Gaussian factor is
+For `P_k = n_k J_k`, the Gaussian kernel is
 
 ```text
 g_k(theta) = exp(-1/2 (theta-theta_hat_k)' P_k (theta-theta_hat_k))

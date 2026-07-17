@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07110e">
-  <title>Boltzmann MapReduce — Uncertainty-Aware Reduction</title>
-  <meta name="description" content="A result contract that preserves uncertainty, evidence provenance, and disagreement while combining independent worker estimates.">
+  <title>Boltzmann MapReduce — Evidence-Aware Reduction</title>
+  <meta name="description" content="A worker-result contract that separates execution fan-out from independent evidence.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://zozo123.github.io/boltzmann-mapreduce/">
-  <meta property="og:title" content="Boltzmann MapReduce — Uncertainty-Aware Reduction">
+  <meta property="og:title" content="Boltzmann MapReduce — Evidence-Aware Reduction">
   <meta property="og:description" content="Parallel answers are cheap. Knowing what to trust is the hard part.">
   <meta property="og:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
   <meta property="og:image:width" content="1200">
@@ -16,7 +16,7 @@
   <meta property="og:image:alt" content="Three uncertain worker distributions merging into one sharper pooled result">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Boltzmann MapReduce">
-  <meta name="twitter:description" content="An uncertainty- and provenance-aware result contract for forkable workers.">
+  <meta name="twitter:description" content="An evidence-aware result contract for forkable workers.">
   <meta name="twitter:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
   <style>
     :root {
@@ -976,11 +976,11 @@
     <section class="hero" id="top">
       <div class="wrap hero-grid">
         <div>
-          <p class="kicker">Uncertainty-aware reduction</p>
+          <p class="kicker">Evidence-aware reduction</p>
           <h1>Parallel answers are cheap. Knowing what to <em>trust</em> is the hard part.</h1>
           <p class="hero-copy">Make every worker return an estimate, its uncertainty, and the origin of its evidence. Then combine independent results with weight earned by statistical information.</p>
           <div class="actions">
-            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read the corrected PDF</a>
+            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Read the paper</a>
             <a class="button anchor" href="#explorer">Stress-test the reducer</a>
           </div>
           <div class="signal-strip" aria-label="Worker result ingredients">
@@ -1040,7 +1040,7 @@
 
       <div class="wrap hero-foot" aria-label="Artifact summary">
         <p>The statistical core is established inverse-information pooling. The contribution is the result contract, the auditable merge, and the explicit boundary around dependence.</p>
-        <div class="metric"><strong>17</strong><span>Tests</span></div>
+        <div class="metric"><strong>✓</strong><span>Unit tests</span></div>
         <div class="metric"><strong>3</strong><span>Sanity paths</span></div>
         <div class="metric"><strong>1</strong><span>Locked E2E</span></div>
       </div>
@@ -1053,10 +1053,10 @@
             <p class="section-label">The idea in one glance</p>
             <h2>Keep the information that ordinary reducers throw away.</h2>
           </div>
-          <p class="idea-aside">A scalar says <em>what</em> a worker thinks. A statistical result also says <em>how much evidence supports it</em> and <em>whether that evidence was already counted</em>.</p>
+          <p class="idea-aside">A scalar says <em>what</em> a worker thinks. A statistical result also says <em>how much evidence supports it</em> and declares evidence identifiers so exact repeats can be detected.</p>
         </div>
 
-        <div class="flow" aria-label="Four-stage uncertainty-aware reduction flow">
+        <div class="flow" aria-label="Four-stage evidence-aware reduction flow">
           <article class="flow-card">
             <div class="flow-node" aria-hidden="true">xₖ</div>
             <div class="flow-index">01 · Partition</div>
@@ -1109,7 +1109,7 @@
           <div class="explorer-visual">
             <div class="explorer-card-head">
               <span class="explorer-card-title">Information field · θ</span>
-              <span class="explorer-status" data-explorer-status data-tone="valid" aria-live="polite">Merge valid · 4 disjoint evidence sets</span>
+              <span class="explorer-status" data-explorer-status data-tone="valid" aria-live="polite">Merge valid · no repeated identifiers detected</span>
             </div>
             <div class="explorer-chart-stage">
               <canvas id="explorerChart" role="img" aria-label="Four adjustable worker distributions and their information-weighted pooled result">Four adjustable Gaussian worker factors combine into an information-weighted pooled result.</canvas>
@@ -1197,7 +1197,7 @@
         <div class="value-statement">
           <p class="section-label">Why this is valuable</p>
           <h2>An honest interface for evidence-aware reduction.</h2>
-          <p class="lead">The reducer keeps evidence strength, merge structure, and disagreement visible from worker output to pooled result.</p>
+          <p class="lead">The reducer carries evidence strength, declared identity, lineage, and disagreement from worker output to pooled result.</p>
         </div>
         <div class="value-cards">
           <article class="value-card">
@@ -1206,7 +1206,7 @@
           </article>
           <article class="value-card">
             <div class="value-number">02</div>
-            <div><h3>Merging scales as a tree</h3><p>The canonical summary is associative and commutative. Local, streaming, and fanout-tree reductions produce the same answer.</p></div>
+            <div><h3>Merging scales as a tree</h3><p>The numeric canonical state is associative and commutative. Provenance is aggregated separately with explicit field semantics.</p></div>
           </article>
           <article class="value-card">
             <div class="value-number">03</div>
@@ -1256,7 +1256,7 @@
         <div class="evidence-copy">
           <p class="section-label">Auditable artifact</p>
           <h2>Small enough to inspect. Complete enough to rerun.</h2>
-          <p>The repository checks the Gaussian algebra, exact normalizer, hierarchical merge, schema, overlap guard, and three deterministic statistical paths. Platform logs document execution paths. A controlled cross-provider benchmark remains future work.</p>
+          <p>The repository checks Gaussian algebra, the closed-form product integral, tree reduction, serialized-record validation, the overlap guard, and three deterministic statistical paths. Platform logs document execution paths; a controlled cross-provider benchmark remains future work.</p>
           <div class="fact-list">
             <div class="fact"><strong>Mean</strong><span>Information-pooled 4.9542 versus centralized 4.9546 on twelve synthetic shards.</span></div>
             <div class="fact"><strong>0.033</strong><span>Coefficient gap to centralized OLS in the committed linear-regression sanity check.</span></div>
@@ -1273,10 +1273,10 @@
           <p class="section-label">Citation</p>
           <h2>Cite the published arXiv record.</h2>
           <p class="citation-record"><cite>Yossi Eliaz. “Boltzmann MapReduce: A Partition-Function Reduce for Forkable Sandboxes.”</cite> arXiv:2607.09689 [cs.AI], 2026. <a href="https://doi.org/10.48550/arXiv.2607.09689">doi:10.48550/arXiv.2607.09689</a>.</p>
-          <p class="note"><strong>Version note:</strong> Citation metadata follows arXiv v1, submitted 17 June 2026. The repository PDF is the corrected revision and may differ in title and content from arXiv v1.</p>
+          <p class="note"><strong>Version note:</strong> Citation metadata follows arXiv v2, revised 14 July 2026. The repository PDF is the candidate next revision, with a new title and evidence-aware framing; upload it as the next arXiv version before treating the records as synchronized.</p>
           <div class="actions">
             <a class="button" href="https://arxiv.org/abs/2607.09689">Open arXiv record</a>
-            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Read corrected PDF</a>
+            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Read repository candidate</a>
           </div>
         </div>
         <div class="code-card" aria-label="BibTeX citation"><pre>@misc{eliaz2026boltzmann,
@@ -1301,7 +1301,7 @@
           <p>The complete workflow verifies Python tests, package builds, local demos, generated figures, the paper build, identical release PDFs, and the website contract.</p>
           <div class="actions">
             <a class="button primary" href="https://github.com/zozo123/boltzmann-mapreduce">Explore the repository</a>
-            <a class="button" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Open repository PDF</a>
+            <a class="button" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Open repository PDF</a>
           </div>
         </div>
         <div class="terminal" aria-label="End-to-end verification commands">
@@ -1319,11 +1319,11 @@
 
   <footer>
     <div class="wrap footer-grid">
-      <span><strong>Boltzmann MapReduce</strong> · An honest interface for uncertainty-aware reduction.</span>
+      <span><strong>Boltzmann MapReduce</strong> · Evidence-aware reduction for forkable workers.</span>
       <div class="footer-links">
         <a href="https://github.com/zozo123/boltzmann-mapreduce">GitHub</a>
         <a href="https://arxiv.org/abs/2607.09689">arXiv</a>
-        <a href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf">Corrected PDF</a>
+        <a href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Repository PDF</a>
       </div>
     </div>
   </footer>
@@ -1718,7 +1718,7 @@
           energyOutput.textContent = "—";
           precisionOutput.textContent = "—";
           if (result.duplicates.length) {
-            status.textContent = `Merge blocked · ${result.duplicates.join(", ")} counted twice`;
+            status.textContent = `Merge blocked · repeated identifier: ${result.duplicates.join(", ")}`;
             formulaOutput.textContent = "Merge blocked: resolve repeated evidence identifiers or model their dependence explicitly.";
           } else {
             status.textContent = "Merge blocked · select at least two workers";
@@ -1736,7 +1736,7 @@
             status.textContent = "Merge algebra valid · conflict is high";
             status.dataset.tone = "warning";
           } else {
-            status.textContent = `Merge valid · ${result.enabled.length} disjoint evidence sets`;
+            status.textContent = "Merge valid · no repeated identifiers detected";
             status.dataset.tone = "valid";
           }
           formulaOutput.textContent = `P = ${result.total.toFixed(1)} · SE = ${result.sigma.toFixed(3)} · Δ/2 = ${result.disagreement.toFixed(2)} · θ̂ = P⁻¹q`;

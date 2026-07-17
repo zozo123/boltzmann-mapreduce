@@ -4,10 +4,10 @@
 
 | Component | Status |
 |---|---|
-| Validated worker-result schema | Implemented and tested |
-| Gaussian canonical merge | Flat and hierarchical APIs implemented and tested |
+| Validated serialized worker record | Implemented and tested |
+| Gaussian canonical merge | Flat and tree-reduction APIs implemented and tested |
 | Exact unnormalized product normalizer | Implemented and tested |
-| Lineage and evidence identifiers | Literal overlap rejected; lineage correlation not modeled |
+| Lineage and evidence identifiers | Literal overlap rejected; both fields reach pooled output; correlation not modeled |
 | Local execution | Python process pool |
 | Named-snapshot execution | One four-shard islo run |
 | Daytona/Tensorlake observations | Default sandbox creation only |
@@ -17,10 +17,10 @@
 ## What the artifact establishes
 
 - Independent Gaussian factors merge through additive natural parameters.
-- The exact normalizer includes disagreement energy
+- The closed-form product integral includes residual heterogeneity energy
   `1/2 * (c - q.T @ inv(P) @ q)`.
 - Malformed sample sizes and information matrices are rejected.
-- Hierarchical canonical merging matches flat reduction, and literal duplicate
+- Tree-based canonical merging matches flat reduction, and literal duplicate
   evidence IDs are rejected unless the caller explicitly overrides the guard.
 - The outlier heuristic examines all parameter coordinates and bounds the supplied
   multivariate regression attack.

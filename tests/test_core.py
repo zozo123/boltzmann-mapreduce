@@ -134,6 +134,26 @@ def test_partition_normalizer_includes_worker_disagreement():
     assert pooled_disagree.disagreement_energy == pytest.approx(25.0)
 
 
+def test_finalization_clips_only_roundoff_scale_negative_disagreement():
+    near_consistent = CanonicalSummary(
+        precision=[[1.0]],
+        info_theta=[1.0],
+        quadratic_constant=1.0 - 1e-15,
+        n_total=1,
+    )
+    pooled = finalize_canonical(near_consistent)
+    assert pooled.disagreement_energy == pytest.approx(0.0)
+
+    inconsistent = CanonicalSummary(
+        precision=[[1.0]],
+        info_theta=[10.0],
+        quadratic_constant=0.0,
+        n_total=1,
+    )
+    with pytest.raises(ValueError, match="quadratic constant is inconsistent"):
+        finalize_canonical(inconsistent)
+
+
 def test_canonical_merge_is_associative_and_matches_flat_reduce():
     cds = [
         CD([float(k), -float(k)], [[2.0, 0.2], [0.2, 1.0]], k + 2,
@@ -153,6 +173,49 @@ def test_canonical_merge_is_associative_and_matches_flat_reduce():
     assert np.allclose(hierarchical.cov, flat.cov)
     assert hierarchical.neg_log_Z == pytest.approx(flat.neg_log_Z)
     assert set(left.evidence_ids) == {"batch-0", "batch-1", "batch-2"}
+
+
+def test_final_pooled_result_preserves_provenance():
+    cds = [
+        CD([0.0], [[1.0]], 10,
+           lineage=["snapshot-a", "branch-a"], evidence_ids=["evaluation-a"]),
+        CD([1.0], [[1.0]], 20,
+           lineage=["snapshot-a", "branch-b"], evidence_ids=["evaluation-b"]),
+    ]
+
+    flat = reduce_partition(cds)
+    summary = CanonicalSummary.from_cd(cds[0]).merge(CanonicalSummary.from_cd(cds[1]))
+    hierarchical = finalize_canonical(summary)
+
+    expected_evidence = ("evaluation-a", "evaluation-b")
+    expected_lineage = ("snapshot-a", "branch-a", "branch-b")
+    assert flat.evidence_ids == expected_evidence
+    assert flat.lineage == expected_lineage
+    assert hierarchical.evidence_ids == expected_evidence
+    assert hierarchical.lineage == expected_lineage
+
+
+def test_canonical_numeric_merge_is_commutative_but_lineage_order_is_not():
+    a = CanonicalSummary.from_cd(
+        CD([0.0], [[2.0]], 3,
+           lineage=["root", "branch-a"], evidence_ids=["evaluation-a"])
+    )
+    b = CanonicalSummary.from_cd(
+        CD([2.0], [[1.0]], 5,
+           lineage=["root", "branch-b"], evidence_ids=["evaluation-b"])
+    )
+
+    ab = a.merge(b)
+    ba = b.merge(a)
+
+    assert np.allclose(ab.precision, ba.precision)
+    assert np.allclose(ab.info_theta, ba.info_theta)
+    assert ab.quadratic_constant == pytest.approx(ba.quadratic_constant)
+    assert ab.n_total == ba.n_total
+    assert set(ab.evidence_ids) == set(ba.evidence_ids)
+    assert ab.lineage == ("root", "branch-a", "branch-b")
+    assert ba.lineage == ("root", "branch-b", "branch-a")
+    assert ab != ba
 
 
 def test_duplicate_evidence_is_rejected_unless_explicitly_allowed():

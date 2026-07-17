@@ -1,91 +1,95 @@
-# Uncertainty-Aware Reduction for Forkable Sandboxes
+# Evidence-Aware Reduction for Forkable Sandboxes
 
-**Boltzmann MapReduce** is a small reference implementation and research paper about
-what parallel workers should return when their outputs are noisy: an estimate,
-uncertainty, evidence provenance, and fork lineage rather than an unexplained scalar.
+Snapshot-backed sandboxes make execution fan-out cheap. They do not make worker
+outputs independent evidence. Branches can share a model, prompt, repository,
+tests, observations, or ancestor; reducing them as independent votes can turn one
+repeated error into high-confidence consensus.
 
-Explore the idea interactively in the
-[live fusion explorer](https://zozo123.github.io/boltzmann-mapreduce/#explorer),
-including false-precision and repeated-evidence failure modes, or read the
-[corrected repository PDF](https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/uncertainty-aware-reduction.pdf).
+This repository contains a small evidence-aware reducer, deterministic checks, raw
+execution traces, and the paper:
 
-For disjoint evidence about a common parameter, the statistical core uses established
-inverse-information/confidence-distribution pooling. Under local asymptotic normality,
-the Gaussian factor can be written
+- [Evidence-Aware Reduction for Forkable Sandboxes](https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf)
+- [Interactive fusion explorer](https://zozo123.github.io/boltzmann-mapreduce/#explorer)
 
-```text
-g_k(theta) = exp(-beta_k * E_k(theta))
-beta_k     = n_k
-E_k(theta) = 1/2 (theta_hat_k-theta)' J_k (theta_hat_k-theta)
-```
+## Worker contract
 
-when energy is defined per observation. `beta = n` is a useful thermodynamic
-convention, not a new estimator; the invariant statistical quantity is total precision
-`P_k = n_k * J_k`.
-
-## What is new - and what is not
-
-This project does **not** claim to invent inverse-variance pooling, Rao-type confidence
-distributions, or MapReduce statistical inference. Its contributions are:
-
-- An uncertainty- and provenance-carrying worker-result contract.
-- An associative Gaussian canonical merge `(P, q, c, N)`.
-- The exact Gaussian product normalizer, including worker-disagreement energy.
-- A runnable snapshot-backed worker path and carefully scoped platform observations.
-- A research agenda for lineage-aware reduction of correlated forked AI agents.
-
-The key boundary is equally important: process or sandbox isolation does not make
-worker evidence statistically independent.
-
-## Result contract
-
-A `CD` worker result carries:
+A `CD` worker record carries:
 
 - `theta_hat`: local estimate.
-- `info_per_obs`: positive-definite per-observation information `J`.
-- `n`: positive local sample size.
-- `lineage`: fork ancestry identifiers.
-- `evidence_ids`: identifiers for underlying observations/evaluations.
-- `meta`: runtime and application metadata.
+- `info_per_obs`: positive-definite per-observation information $J_k$.
+- `n`: positive literal sample count.
+- `evidence_ids`: caller-supplied identifiers for observations or evaluations.
+- `lineage`: caller-supplied fork ancestry.
+- `meta`: worker-level execution and application metadata.
 
-The reducer validates dimensions, finite values, positive sample size, provenance,
-symmetry, and positive definiteness before combining summaries. Non-empty duplicate
-`evidence_ids` are rejected by default; an explicit override exists for callers that
-model overlap outside this package.
+The implementation validates dimensions, finite values, integer sample size,
+provenance shape, symmetry, and positive definiteness. It rejects overlap among
+nonempty `evidence_ids` unless the caller uses an explicit unsafe override.
 
-For `P_k = n_k J_k`, `q_k = P_k theta_hat_k`, and
-`c_k = theta_hat_k' P_k theta_hat_k`, independent factors merge by addition. The
-pooled mode is `P^-1 q`; covariance is `P^-1`; and the unnormalized product has
+> Evidence labels and lineage are transport fields, not verified identities or a
+> correlation model. Empty IDs, different labels for the same data, shared noise,
+> and mismatched estimands remain the caller's responsibility.
+
+For total precision $P_k=n_kJ_k$, information vector
+$q_k=P_k\hat\theta_k$, and quadratic constant
+$c_k=\hat\theta_k^\top P_k\hat\theta_k$, numeric summaries merge by addition:
 
 ```text
--log Z = -p/2 log(2*pi) + 1/2 log|P| + 1/2 (c - q' P^-1 q).
+(P, q, c, N) = sum_k (P_k, q_k, c_k, n_k)
+theta_pool   = solve(P, q)
+Sigma_pool   = inverse(P)
+Delta        = c - q' solve(P, q)
 ```
 
-The final term is exposed as `disagreement_energy`.
+The numeric state is associative and commutative in exact arithmetic. Provenance
+has separate semantics: evidence IDs are canonicalized, while lineage uses
+order-preserving deduplication. `finalize_canonical(...)` returns `evidence_ids`
+and `lineage` with the pooled statistics; worker `meta` remains a worker-level
+field.
 
-`CanonicalSummary.from_cd(cd)` and `CanonicalSummary.merge(...)` expose the same
-associative operation for streaming or tree reduction. `finalize_canonical(...)`
-converts a merged summary to a pooled result. Shared lineage is preserved, but it is
-not interpreted as an independence model.
+$\Delta$ is the weighted residual heterogeneity statistic—Cochran's $Q$ in
+the scalar inverse-variance case. The unit-height Gaussian product has
+
+```text
+-log Z = -p/2 log(2*pi) + 1/2 log|P| + 1/2 Delta.
+```
+
+The API field `disagreement_energy` stores $\Delta/2$. Cholesky solves and
+log-determinants avoid explicit numerical inversion. A negative computed $\Delta$
+is clipped only within a scale-aware roundoff tolerance; a larger violation is
+rejected as an inconsistent canonical summary.
+
+## What the artifact establishes
+
+| Layer | Evidence in this repository | Boundary |
+|---|---|---|
+| Gaussian algebra | Closed-form, flat, and tree reductions agree | Common target and independent estimation noise |
+| Record validation | Malformed inputs and exact repeated nonempty IDs are rejected | IDs are caller-supplied and unverified |
+| Provenance | Evidence IDs and lineage reach the finalized pooled result | Lineage is not yet a fork-DAG covariance model |
+| Logistic sanity check | Expected direction under severe IID size imbalance | Equal averaging is a deliberately weak baseline |
+| Forged-precision trace | Vulnerability and a transparent stress-test clip | No Byzantine or affine-invariant guarantee |
+| islo integration | One four-worker named-snapshot end-to-end trace | No isolated restore-speed claim |
+| Provider sweeps | Three exercised API paths with raw timing logs | Different operation boundaries; no provider ranking |
 
 ## Quickstart
 
-All Python commands run from the checked-in [`uv`](https://docs.astral.sh/uv/)
-lockfile. The first command below verifies tests, compilation, package builds, and every
-local demo:
+The locked local workflow is:
 
 ```bash
 uv sync --locked
-uv run --locked python scripts/verify_e2e.py --skip-paper
+uv run --locked python -m pytest -q
 uv run --locked python demo.py --scenario mean --byzantine
 uv run --locked python demo.py --scenario linreg
 uv run --locked python demo.py --scenario logistic
 ```
 
-The local backend uses Python's platform-dependent process pool. It does not claim
-copy-on-write or `fork()` semantics.
+The local backend uses Python's platform-dependent process pool and makes no
+copy-on-write or guaranteed `fork()` claim.
 
-## Snapshot-backed execution on islo
+## Named-snapshot execution
+
+The documented islo path prepares a named environment before normal workers
+restore from it:
 
 ```bash
 islo login
@@ -94,75 +98,73 @@ islo snapshot save bmr-base --name bmr-base
 uv run --locked python demo.py --backend islo --scenario mean
 ```
 
-The committed [`runs/islo_run.txt`](runs/islo_run.txt) records one four-shard execution
-from a named 141 MB snapshot. It is an execution-path existence proof, not an isolated
-microVM-restore benchmark.
+[`runs/islo_run.txt`](runs/islo_run.txt) records one four-shard execution from a
+named 141 MB snapshot. The recorded 6.70 s is client-observed
+restore–run–capture round-trip time.
 
-The Daytona and Tensorlake SDKs are optional extras resolved in `uv.lock`; no mutable
-per-provider installation step is needed:
+Optional Daytona and Tensorlake traces exercise default sandbox creation:
 
 ```bash
 uv run --locked --extra daytona python scripts/daytona_fanout.py
 uv run --locked --extra tensorlake python scripts/tensorlake_fanout.py
 ```
 
-These scripts create default sandboxes and run a trivial command. They do **not**
-restore the named islo snapshot, so their logs are platform-specific creation
-observations rather than comparable snapshot-fork measurements. They require provider
-credentials and may consume quota, so E2E checks compile the scripts and CI imports the
-locked SDKs but does not execute provider sweeps.
+They require provider credentials and may consume quota. The automated local
+workflow imports their locked SDKs but does not execute cloud sweeps.
 
-## Robustness scope
+| Platform | State source | Measured operation | Client concurrency | Batch | Success | p50 | p95 | Total wall |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| Daytona | default environment | create | 8 | 1024 | 1024/1024 | 0.20 s | 1.12 s | 190.3 s |
+| Tensorlake | default environment | create | 8 | 256 | 256/256 | 3.44 s | 9.00 s | 387.3 s |
+| islo | named 141 MB snapshot | restore + run + capture | 12 | 256 | 255/256 | 6.87 s | 9.04 s | 240.3 s |
 
-Gaussian precision pooling is not robust: even a fixed-precision location outlier has
-unbounded influence, and forged high precision adds another attack surface.
-`byzantine_clip` is retained as a transparent stress-test heuristic. It now handles all
-parameter coordinates, caps relative precision volume, and applies a redescending
-multivariate location weight, but it is not a certified Byzantine defense.
+Daytona and Tensorlake p50/p95 values are create latency; their total wall time
+covers the complete create–run–delete batch. The islo percentiles cover
+restore–run–capture. Failed higher-concurrency exploratory sweeps remain in the
+raw logs as capacity observations.
 
-Do not multiply factors when workers reuse evidence, share correlated noise, or target
-different parameters. In those settings use a correlation-aware or hierarchical model.
+## Build the paper
 
-## Paper
-
-The revised paper is:
-
-> **Uncertainty-Aware Reduction for Forkable Sandboxes: A Thermodynamic View of
-> Confidence-Distribution Pooling**
-
-Sources are in `paper/`. The uv-driven builder isolates TeX intermediates in a temporary
-directory, rejects release-blocking warnings, and publishes identical PDF copies to
-`output/pdf/` and `docs/`:
+The paper builder uses a temporary TeX tree, rejects release-blocking warnings,
+and publishes byte-identical canonical and compatibility copies:
 
 ```bash
 uv run --locked python scripts/build_paper.py
 ```
 
-The complete release check uses that builder after tests, compilation, and all local
-demos. It requires `pdflatex` and `bibtex` on `PATH`:
+Canonical outputs:
+
+- `submission/evidence-aware-reduction.pdf`
+- `output/pdf/evidence-aware-reduction.pdf`
+- `docs/evidence-aware-reduction.pdf`
+
+All arXiv inputs are flat under `submission/`: `main.tex`, `body.tex`,
+`fig_contract.tex`, and `refs.bib`. There are no nested figure or source
+directories.
+
+Historical PDF paths are retained as byte-identical aliases so existing links do
+not serve stale manuscripts. The full local release workflow is:
 
 ```bash
 uv run --locked python scripts/verify_e2e.py
 ```
 
-CI runs the Python path on Python 3.10 and 3.12 and runs this complete release check in
-the paper job.
+Cloud-provider sweeps are excluded from that command.
 
-## Evidence boundaries
+## Public paper status
 
-| Component | What the repository establishes | What it does not establish |
-|---|---|---|
-| Statistical core | Gaussian algebra, exact normalizer, schema validation | General finite-sample efficiency |
-| Logistic check | Expected direction under severe IID size imbalance | Non-IID robustness or baseline superiority |
-| Outlier heuristic | One scalar stress test and multivariate regression test | Byzantine tolerance |
-| islo | One named-snapshot end-to-end execution | In-host restore latency advantage |
-| Daytona/Tensorlake | Batched default sandbox creation | Shared-snapshot restore performance |
-| Provenance | Literal evidence-ID overlap rejection and lineage transport | Correlation-aware inference |
+The repository paper is the candidate next revision titled **Evidence-Aware
+Reduction for Forkable Sandboxes: Separating Execution Fan-Out from Independent
+Evidence**.
 
-See [`PLAN.md`](PLAN.md) for the experiments required for a full systems/statistics paper.
+The public [arXiv:2607.09689](https://arxiv.org/abs/2607.09689) record was last
+revised as v2 on 14 July 2026 and still uses the earlier title and thermodynamic
+abstract. Uploading this repository revision as the next arXiv version is the one
+remaining external synchronization step. See
+[`paper/RELEASE_CHECKLIST.md`](paper/RELEASE_CHECKLIST.md).
 
 ## License status
 
-No software license file is currently present. Public visibility does not itself grant
-reuse rights; select and add a code license before presenting the repository as open
-source. The arXiv paper's document license does not automatically license this code.
+No software license file is currently present. Public visibility does not grant
+reuse rights; select a code license before presenting the implementation as open
+source. The arXiv document license does not automatically license the code.
