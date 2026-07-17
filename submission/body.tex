@@ -1,20 +1,18 @@
 \begin{abstract}
-Snapshot-backed sandboxes make branching cheap; they do not create independent evidence.
+Snapshot-backed sandboxes make branching cheap while leaving evidence dependence unchanged.
 Branches can reuse a model, prompt, repository, tests, observations, or execution ancestor, so
-counting outputs can turn one repeated error into high-confidence consensus. We introduce an
+counting outputs can amplify one repeated error into high-confidence consensus. We introduce an
 \emph{evidence-aware reduction contract}: each worker reports an estimate, estimated
-information, evidence identifiers, fork lineage, and execution metadata. For workers estimating
-a common parameter from disjoint independent evidence, the statistical core is the
-Gaussian/Wald common-effect case of established inverse-information and
-confidence-distribution pooling. Its numeric canonical state merges associatively and
-commutatively, while provenance follows explicit field semantics. Completing the square yields
-the pooled kernel and a residual heterogeneity statistic $\Delta$---Cochran's $Q$ in the scalar
-inverse-variance case---that also enters the product integral. A reference implementation
+information, evidence identifiers, fork lineage, and execution metadata. For independent workers
+estimating one common parameter, we use standard inverse-information pooling in its Gaussian/Wald
+form. The fixed-dimensional numeric summary can merge in any tree order; evidence IDs and lineage
+follow separate rules. The residual $\Delta$ measures disagreement, becomes Cochran's $Q$ in the
+scalar inverse-variance case, and appears in the product integral. A reference implementation
 validates serialized records, rejects repeated nonempty evidence identifiers, carries evidence
 and lineage through tree reduction, and uses Cholesky-based numerical linear algebra. Unit tests
 and seeded synthetic checks exercise the algebra, unequal information, and forged precision; one
 four-worker named-snapshot trace exercises the end-to-end path. Platform logs document the
-exercised execution paths. The next systems problem is to turn evidence identity
+exercised execution paths. A central open systems challenge is to turn evidence identity
 and fork lineage into a dependence model for correlated and adaptively selected AI branches.
 Artifact: \href{https://github.com/zozo123/boltzmann-mapreduce}{github.com/zozo123/boltzmann-mapreduce}.
 \end{abstract}
@@ -33,12 +31,12 @@ equal marginal variance $\sigma^2$ and exchangeable pairwise correlation $\rho$,
 \end{equation}
 whereas an independence calculation reports $\sigma^2/K$. For fixed $\rho>0$, variance has
 the floor $\rho\sigma^2$ even as the number of branches grows. Execution isolation constrains
-runtime state; it does not determine $\rho$.
+runtime state; $\rho$ instead depends on the evidence sources and branch history.
 
 MapReduce gained leverage from a small interface that let the runtime manage partitioning,
 placement, retries, and communication~\cite{dean2004mapreduce}. Modern evaluation and agent
 pipelines often retain the fan-out but reduce each branch to a scalar or vote. Such outputs erase
-four facts a reducer needs: uncertainty, information geometry, evidence identity, and inherited
+four facts a reducer needs: uncertainty, information strength, evidence identity, and inherited
 dependencies. Equal voting ignores the first two; repeated evidence and shared ancestry can
 manufacture false precision from the latter two. Snapshot and serverless systems make this
 failure mode operationally important because branching prepared state is increasingly
@@ -46,10 +44,9 @@ convenient~\cite{agache2020firecracker,ustiugov2021reap,du2020catalyzer}.
 
 We ask a systems question: \emph{what should a worker return so that a runtime can reduce its
 result without erasing the evidence behind it?} Our answer is a structured worker record and a
-mergeable canonical state. The current implementation solves the independent common-target
-case, rejects literal reuse of caller-supplied evidence identifiers, and transports lineage for
-later analysis. It does not infer dependence from lineage; making that inference is the research
-destination.
+mergeable canonical state. The implementation covers the independent common-target case,
+rejects literal reuse of caller-supplied evidence identifiers, and carries lineage into the
+final result. Turning that lineage into a dependence estimate is the next research step.
 
 \noindent\textbf{Contributions.}
 \begin{itemize}
@@ -59,9 +56,9 @@ destination.
   \item \textbf{Artifact.} A reference implementation with record validation, closed-form
   product-integral evaluation, Cholesky solves, deterministic statistical checks, and a
   snapshot-backed integration trace.
-  \item \textbf{Boundary and agenda.} A precise separation between execution isolation and
-  evidential independence, exposing fork-DAG correlation, confidence calibration, adaptive
-  selection, and forged precision as first-class reducer requirements.
+  \item \textbf{Scope and agenda.} A precise separation between execution isolation and
+  independent evidence, exposing correlation inherited through fork DAGs, confidence
+  calibration, adaptive selection, and forged precision as reducer requirements.
 \end{itemize}
 
 \section{Evidence-Aware Worker Results}
@@ -80,9 +77,9 @@ per-observation information, $n_k$ is a literal sample count, $\mathcal E_k$ con
 identifiers, $\mathcal L_k$ records fork lineage, and $m_k$ stores execution metadata. The
 Python dataclass has a JSON-compatible serialized form. At ingestion, the implementation rejects
 non-finite estimates, non-positive integer counts, malformed provenance, inconsistent dimensions,
-and non-symmetric or non-positive-definite $J_k$. Positive definiteness is a contract
-restriction, not an algebraic necessity: semidefinite local factors would be valid when their
-aggregate precision is full rank.
+and non-symmetric or non-positive-definite $J_k$. The current contract requires positive
+definiteness; the algebra also admits semidefinite local factors when their aggregate precision
+is full rank.
 
 The invariant quantity is total precision
 \begin{equation}
@@ -95,12 +92,12 @@ bootstrap, clustered, weighted, or verifier-derived uncertainty may instead requ
 precision field and a separate evidence-mass convention.
 
 \paragraph{Trust semantics.}
-Evidence identifiers and lineage are optional caller-supplied labels, not verified identities.
-The reducer rejects overlap between nonempty $\mathcal E_k$ sets by default. Empty identifiers,
-different labels for the same data, and shared noise without literal reuse remain undetected.
-The current record also lacks a validated estimand, unit, model-version, or coordinate
-identifier, so equal vector dimension does not establish a common target. A production runtime
-must bind those fields to authenticated data and model manifests.
+Evidence identifiers and lineage are optional caller-supplied declarations whose reliability
+rests on the caller. The reducer compares nonempty $\mathcal E_k$ sets and rejects exact overlap
+by default. This check covers literal ID reuse; empty identifiers, relabeling the same data, and
+shared noise fall outside it. The record carries dimensions but no validated estimand, unit,
+model-version, or coordinate identifier. A production runtime must bind these fields to
+authenticated data and model manifests before treating equal dimensions as a common target.
 
 \paragraph{Numeric merge and provenance.}
 Independent summaries add
@@ -111,9 +108,9 @@ Independent summaries add
 In exact arithmetic the numeric state is associative and commutative, enabling arbitrary tree
 reduction. The scalar $c$ must survive intermediate merges: re-emitting only
 $(\hat\theta,J,N)$ would erase disagreement accumulated below the tree. Provenance follows its
-own semantics. Evidence IDs are canonicalized as a set; lineage uses order-preserving
-deduplication, so the full serialized summary is intentionally not commutative. The finalized
-result now returns both provenance fields. Numeric state costs $O(p^2)$, whereas an exact
+own semantics. On merge, evidence IDs are canonicalized as a set; lineage uses order-preserving
+deduplication, so the full serialized summary is order-sensitive. The final result returns both
+provenance fields. Numeric state costs $O(p^2)$, whereas an exact
 provenance ledger can grow as $O(|\mathcal E|+|\mathcal L|)$.
 
 \paragraph{Relationship to sufficient-statistic reduction.}
@@ -122,22 +119,22 @@ $(\sum_i x_i,n)$ and ordinary least squares from $(X^TX,X^Ty)$. The contract tar
 settings where workers expose estimates and calibrated uncertainty but raw data or
 model-specific sufficient statistics are unavailable or undesirable to transmit.
 
-\paragraph{Execution substrate.}
-The record is independent of processes, containers, and microVMs. The local backend uses
+\paragraph{Execution backends.}
+The same record works across processes, containers, and microVMs. The local backend uses
 Python's platform-dependent process pool. The documented islo workflow prepares and saves a
 named environment before the normal backend restores one sandbox per shard. This separation
 lets an execution planner choose placement and tree shape without changing the statistical
 contract.
 
 \paragraph{Retries and speculative execution.}
-Evidence identity belongs to an evaluation, not to the process that happened to execute it. A
+An evidence token identifies an evaluation independently of the process that executes it. A
 retry after failure and a speculative duplicate should therefore reuse the original evidence
 token; accepting both would turn fault tolerance into double counting. The current overlap guard
-makes a repeated token detectable by raising an error; it does not implement idempotent
-admission. A production keyed admission layer should retain one result for retries or speculative
-duplicates. A branch that draws a genuinely new sample receives a new token while retaining its
-parent lineage. Production tokens should bind the input partition, evaluator, model and prompt
-versions, and selection context rather than relying on free-form strings.
+raises an error when it sees a repeated token. A production keyed admission layer should retain
+one result for retries or speculative duplicates. A branch that draws a genuinely new
+sample receives a new token while retaining its parent lineage. Production tokens should bind
+the input partition, evaluator, model and prompt versions, and selection context through
+authenticated structured records.
 
 \section{Associative Gaussian Reduction}
 \label{sec:theory}
@@ -164,8 +161,8 @@ g_k(\theta)=\exp\!\left\{-\tfrac12
 (\theta-\hat\theta_k)^TP_k(\theta-\hat\theta_k)\right\}.
 \label{eq:factor}
 \end{equation}
-It is exact when the local estimate is Gaussian with fixed known covariance. Plug-in covariance
-and non-Gaussian errors return the interpretation to first-order asymptotics.
+It is exact when the local estimate is Gaussian with fixed known covariance. With plug-in
+covariance or non-Gaussian errors, it is a first-order asymptotic approximation.
 
 \paragraph{Pooled center and heterogeneity.}
 Let $P=\sum_kP_k$, $q=\sum_kq_k$, and $c=\sum_kc_k$. Completing the square gives
@@ -190,9 +187,9 @@ For $p=1$, $\Delta$ is Cochran's $Q$; the vector expression is the corresponding
 weighted-residual diagnostic with direct multivariate meta-analytic analogues
 ~\cite{cochran1954combination,jackson2012heterogeneity}. Under independent
 $N_p(\theta_0,P_k^{-1})$ estimates with fixed known $P_k$,
-$\Delta\sim\chi^2_{p(K-1)}$; plug-in precision makes this calibration asymptotic. A small value
-does not prove independence or exclude duplicated evidence, and raw values are not comparable
-across different $K$ without accounting for degrees of freedom.
+$\Delta\sim\chi^2_{p(K-1)}$; plug-in precision makes this calibration asymptotic. Small values
+remain compatible with dependence or duplicated evidence. Comparisons across different $K$
+must account for degrees of freedom.
 
 For the unit-height kernels in Eq.~\eqref{eq:factor}, the partition integral is
 \begin{equation}
@@ -200,13 +197,13 @@ Z_g=(2\pi)^{p/2}|P|^{-1/2}\exp(-\Delta/2).
 \label{eq:normalizer}
 \end{equation}
 Thus $\Delta/2$ is both the minimized summed quadratic energy and the heterogeneity contribution
-to $-\log Z_g$. The full integral also depends on $|P|$ and the integration measure, so it is
-neither a standalone conflict score nor model evidence. Normalized local kernels require their
-own Gaussian constants.
+to $-\log Z_g$. The full integral also depends on $|P|$ and the integration measure. Its
+magnitude alone cannot be read as a conflict score or model evidence. Normalized local kernels
+require their own Gaussian constants.
 
 \paragraph{Numerics and naming.}
-The implementation obtains $\hat\theta$, $\Sigma_g$, and $\log|P|$ from a Cholesky factor rather
-than explicit matrix inversion. It evaluates Eq.~\eqref{eq:normalizer} in closed form, clips a
+The implementation obtains $\hat\theta$, $\Sigma_g$, and $\log|P|$ from a Cholesky factor,
+avoiding explicit matrix inversion. It evaluates Eq.~\eqref{eq:normalizer} in closed form, clips a
 negative computed $\Delta$ only within a scale-aware roundoff tolerance, and rejects larger
 violations of the canonical invariant; the subtraction can otherwise suffer cancellation at
 large offsets. Writing
@@ -218,21 +215,21 @@ E_k(\theta)=\tfrac12(\theta-\hat\theta_k)^TJ_k(\theta-\hat\theta_k),
 makes $g_k=\exp\{-\beta_kE_k\}$ an unnormalized Gibbs kernel. This is a naming convention:
 $n_k$ can be absorbed into $J_k$, and $P_k$ is the invariant. A global
 $\beta=N=\sum_kn_k$ with weighted-average energy is the same product. Bounded local sample sizes
-do not validate Gaussian factors, and accumulated local bias can dominate when $K$
+leave the Gaussian approximation unjustified, and accumulated local bias can dominate when $K$
 grows~\cite{zhang2013oneshot,zhou2017raocd}.
 
-\paragraph{Precision is not robustness.}
+\paragraph{Limits of reported precision.}
 Holding reported precisions fixed, worker $o$ has local influence
 \begin{equation}
 \frac{\partial\hat\theta}{\partial\hat\theta_o}=P^{-1}P_o.
 \label{eq:influence}
 \end{equation}
-Low relative precision in a direction limits leverage there, but influence does not decay with
-distance; fabricated high precision adds a second attack surface. The artifact's stress-test
-clip caps determinant-based precision volume and applies a coordinate-wise median/MAD
-redescending location weight. A determinant cap does not bound the largest directional
-eigenvalue, and the location rule is not rotation invariant. The method instruments one failure
-mode; it is not a Byzantine guarantee.
+Low relative precision in a direction limits leverage there, but distance leaves the derivative
+unchanged; fabricated high precision creates another way to control the pooled estimate. The
+artifact's stress-test clip caps determinant-based precision volume and applies a coordinate-wise median/MAD
+redescending location weight. A determinant cap leaves the largest directional eigenvalue
+unbounded, and the location rule depends on the coordinate system. This heuristic instruments
+one failure mode without providing a Byzantine robustness guarantee.
 
 \begin{table*}[t]
 \centering\scriptsize
@@ -256,11 +253,13 @@ islo & named 141\,MB snapshot & restore + run + capture & 12 & 256 & 255/256 & 6
 
 The evaluation separates unit-tested identities, seeded behavioral checks, and execution traces.
 All statistical data are synthetic. Table~\ref{tab:checks} states the conclusion supported by
-each check rather than treating point gaps as an efficiency study.
+each check. The point gaps summarize these runs; estimating statistical efficiency would require
+a broader repeated-sampling study.
 
 \begin{table}[t]
 \centering\footnotesize
-\caption{Claim-traceable artifact checks. The logistic values are mean $\pm$ SD over eight seeds.}
+\caption{Artifact checks and their supported claims. The logistic values are mean $\pm$ SD over
+eight seeds.}
 \label{tab:checks}
 \begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.23\columnwidth}>{\raggedright\arraybackslash}p{0.35\columnwidth}X@{}}
 \toprule
@@ -268,8 +267,8 @@ Check & Observation & Supported conclusion \\
 \midrule
 Canonical algebra & Flat/tree and closed-form results agree & Code matches the stated Gaussian formulas \\
 Evidence overlap & Repeated nonempty ID raises an error & Exact labeled reuse is blocked \\
-Unequal-size logistic & pool gap $0.0083\!\pm\!0.0042$; equal average $0.177\!\pm\!0.090$ & Expected direction versus a deliberately weak baseline \\
-Forged precision & attacked $17.0004$; clipped $4.9566$ & Vulnerability and one test heuristic \\
+Unequal-size logistic & pool gap $0.0083\!\pm\!0.0042$; equal average $0.177\!\pm\!0.090$ & Information pooling improves on unweighted averaging in this check \\
+Forged precision & attacked $17.0004$; clipped $4.9566$ & Vulnerability and behavior of one heuristic \\
 Snapshot integration & four workers complete in $6.70$\,s & Named-snapshot path executes end to end \\
 \bottomrule
 \end{tabularx}
@@ -287,13 +286,13 @@ uses a different centralized variance treatment.
 \paragraph{Nonlinear and adversarial checks.}
 Five IID logistic shards have sizes $\{60,120,400,2000,5000\}$. Across eight fixed seeds,
 information pooling is $0.0083\pm0.0042$ from the centralized MLE, while equal coefficient
-averaging is $0.177\pm0.090$ away. This is a sanity check against a deliberately weak baseline,
-not a comparison with sample-size weighting, Rao-CD, surrogate likelihood, or distributed
-Newton. In the forged-precision check, one scalar worker reports a distant location from a
+averaging is $0.177\pm0.090$ away. We use unweighted averaging as a simple baseline; a broader
+study would also compare sample-size weighting, Rao-CD, surrogate likelihood, and distributed
+Newton. In the forged-precision check, one scalar worker reports a
+distant location from a
 2,000-point shard and inflates its reported precision by a further $50\times$; unprotected
 pooling moves to $17.0004$, and the stress
-clip returns $4.9566$. The trace exposes both the attack surface and the heuristic's narrow
-scope.
+clip returns $4.9566$. This check exposes the vulnerability and illustrates one narrow response.
 
 \paragraph{Execution paths.}
 One integration trace starts from a named $141$\,MB islo snapshot and restores four sandboxes.
@@ -301,45 +300,42 @@ Their seed-pinned workers return pooled mean $4.9422$ versus full-sample $4.9450
 concurrent restore--run--capture round trips complete in $6.70$\,s. This validates the
 snapshot-to-worker-to-reducer path with client-observed timing.
 
-The batched measurements in Table~\ref{tab:platform} characterize three exercised API paths with
-different operation boundaries; they are not a cross-platform latency benchmark.
-
-The raw logs also retain failed exploratory sweeps: Daytona at requested client concurrency 32
-and islo at 16 and 32 encountered validation or capacity walls. These failures are capacity
-observations, not points on a common performance curve.
+Table~\ref{tab:platform} records the operation exercised on each platform. Higher requested
+concurrency reached validation or capacity limits for Daytona at 32 and islo at 16 and 32.
 
 \section{Assumptions and Open Problems}
 \label{sec:agenda}
 
 \paragraph{Dependence.}
-Literal ID deduplication addresses only exact declared reuse. A lineage union records common
-ancestors but does not encode a fork DAG or map ancestry to covariance. A correlation-aware
+Literal ID deduplication catches exact declared reuse. A lineage union records common ancestors
+without encoding a fork DAG or mapping ancestry to covariance. A correlation-aware
 reducer should combine factors conditionally on shared observations, evaluators, model state,
-and selection history. Equation~\eqref{eq:correlation-floor} shows why this is central rather
-than a bookkeeping refinement.
+and selection history. Equation~\eqref{eq:correlation-floor} makes this a central statistical
+problem.
 
 \paragraph{From lineage to a fork-DAG reducer.}
 A useful next record would name parent branch IDs, immutable evidence manifests, model/prompt/tool
 hashes, evaluator and test versions, and branch-selection events. The runtime could then map
 known overlap to shared latent factors, covariance blocks, or conservative evidence groups
 before applying a generalized reducer. Crucially, the interface must permit abstention: when the
-runtime cannot justify a dependence model, it should report unresolved correlation rather than
-manufacture a narrower interval. The current lineage union is the transport layer for this
-design, not the design itself.
+runtime cannot justify a dependence model, it should report unresolved correlation and withhold
+a narrower interval. The current lineage union records the history while leaving this modeling
+step open.
 
 \paragraph{Different local targets.}
-The common-$\theta_0$ assumption defines a common-effect model. Non-IID observations do not by
-themselves invalidate pooling when every worker identifies the same parameter and reports valid
-uncertainty. If workers target different estimands, $P^{-1}$ omits between-worker variation and
+The common-$\theta_0$ assumption defines a common-effect model. Non-IID observations can still
+support pooling when every worker identifies the same parameter and reports valid uncertainty.
+If workers target different estimands, $P^{-1}$ omits between-worker variation and
 can be severely overconfident. The system must first name the target and adopt an explicit
 heterogeneity model, such as site effects, meta-regression, or a random-effects hierarchy.
 
 \paragraph{Confidence construction and adaptive selection.}
-A model's verbal confidence is not automatically a calibrated standard error; calibration
-depends on the model, elicitation, task, and deployment distribution. Agent precision should be
-derived from external evidence such as held-out tests, repeated trials, independent verifiers,
-or an empirically calibrated outcome model. If the same evidence selects surviving branches and
-constructs their factors, winner's-curse bias can result; the ledger must record that reuse.
+A model's verbal confidence requires empirical calibration before it can serve as a standard
+error; calibration depends on the model, elicitation, task, and deployment distribution. Agent
+precision should be derived from external evidence such as held-out tests, repeated trials,
+independent verifiers, or an empirically calibrated outcome model. If the same evidence selects
+surviving branches and constructs their factors, winner's-curse bias can result; the ledger must
+record that reuse.
 
 \paragraph{Untrusted workers and systems evidence.}
 Robust aggregation requires a threat model over locations, covariance reports, collusion, and
@@ -351,34 +347,36 @@ built.
 \section{Related Work}
 \label{sec:related}
 
-The Gaussian reducer belongs to established confidence-distribution and common-effect
+The Gaussian reducer follows established confidence-distribution and common-effect
 meta-analysis~\cite{singh2005combining,xie2011meta,cochran1954combination}. Rao-CD and
-distributed GLM inference provide closer estimating-equation constructions
+distributed GLM inference provide closely related estimating-equation constructions
 ~\cite{zhou2017raocd,tang2020distributed}. One-shot averaging and surrogate likelihood explore
-neighboring communication--statistics tradeoffs~\cite{zhang2013oneshot,jordan2019csl}. Our
-contribution is the runtime boundary that determines when invoking such a reducer is justified.
+neighboring communication--statistics tradeoffs~\cite{zhang2013oneshot,jordan2019csl}. We add a
+runtime contract that makes the independence conditions visible before reduction.
 
 Self-consistency marginalizes answers from diverse reasoning paths, while multiagent debate lets
-models exchange critiques before converging~\cite{wang2023selfconsistency,du2024multiagent}. These methods use
-redundant generations for selection; they do not establish independent evidence. Our
-complementary concern is provenance and uncertainty aggregation under stated dependence
-assumptions.
+models exchange critiques before converging~\cite{wang2023selfconsistency,du2024multiagent}.
+These methods exploit redundant generations for answer selection while leaving evidence
+dependence unstated. Our contract records provenance, and its Gaussian reducer combines
+uncertainty when the independence assumptions hold.
 
 MapReduce established the programmable dataflow contract~\cite{dean2004mapreduce}; Firecracker,
 Catalyzer, REAP, and Faasm study lightweight isolation, startup, and reusable state
 ~\cite{agache2020firecracker,du2020catalyzer,ustiugov2021reap,shillaker2020faasm}. These systems
-make branching practical but do not supply an evidential independence model. Robust distributed
+make branching practical; our work connects that capability to explicit evidence accounting at
+reduction time. Robust distributed
 learning methods such as Krum and FLAME start from explicit adversary models
-~\cite{blanchard2017krum,nguyen2022flame}; the included stress clip has no comparable guarantee.
+~\cite{blanchard2017krum,nguyen2022flame}. The included stress clip is a diagnostic heuristic
+without a Byzantine-robustness guarantee.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-Cheap forks reduce execution cost; they do not increase the amount of independent evidence. The
+Cheap forks reduce execution cost while leaving the amount of independent evidence unchanged. The
 contract developed here makes an estimate, uncertainty, evidence identity, and lineage explicit,
 then reduces independent Gaussian summaries through an associative numeric state while retaining
-provenance. The reference artifact validates this path and exposes residual heterogeneity as a
-first-class diagnostic. The next systems step is a reducer over the fork DAG: one that can
+provenance. The reference artifact validates this path and reports residual heterogeneity
+explicitly. The next systems step is a reducer over the fork DAG: one that can
 explain why two branches count as separate evidence, model the dependencies they inherited, and
-remain calibrated after selection. Faster fan-out is useful; evidence-aware fan-in is what makes
-the result trustworthy.
+remain calibrated after selection. Faster fan-out is useful; evidence-aware fan-in keeps the
+assumptions and unresolved dependencies visible.

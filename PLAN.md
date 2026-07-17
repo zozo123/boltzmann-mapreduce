@@ -7,11 +7,11 @@
 | Validated serialized worker record | Implemented and tested |
 | Gaussian canonical merge | Flat and tree-reduction APIs implemented and tested |
 | Exact unnormalized product normalizer | Implemented and tested |
-| Lineage and evidence identifiers | Literal overlap rejected; both fields reach pooled output; correlation not modeled |
+| Lineage and evidence identifiers | Literal overlap rejected; both fields reach pooled output; correlation modeling remains future work |
 | Local execution | Python process pool |
 | Named-snapshot execution | One four-shard islo run |
 | Daytona/Tensorlake observations | Default sandbox creation only |
-| Outlier handling | Multivariate stress-test heuristic; no robustness guarantee |
+| Outlier handling | Multivariate stress-test heuristic with explicitly limited scope |
 | Agent workload | Research agenda only |
 
 ## What the artifact establishes
@@ -26,8 +26,9 @@
   multivariate regression attack.
 - The islo adapter can execute deterministic workers from a named snapshot.
 
-These are algebraic, software, and execution-path checks. They are not evidence of
-general statistical efficiency, Byzantine tolerance, or a systems performance win.
+These checks establish the algebraic, software, and execution-path properties above.
+General statistical efficiency, Byzantine tolerance, and comparative systems
+performance require the experiments listed below.
 
 ## Experiments needed for a full research paper
 
@@ -43,8 +44,8 @@ general statistical efficiency, Byzantine tolerance, or a systems performance wi
 5. **Controlled systems comparison.** Identical image and workload on processes,
    containers, cold microVMs, and named-snapshot restores; concurrent fanout,
    p50/p95/p99, page faults, memory sharing, failures, cost, and utility per second.
-6. **Agent evidence.** A real forked coding/evaluation workload where confidence is
-   derived from held-out tests or independent verification rather than model self-report.
+6. **Agent evidence.** A real forked coding/evaluation workload with confidence
+   derived from held-out tests or independent verification.
 7. **Lineage-aware inference.** Use the fork DAG and evidence identifiers to avoid
    double counting shared observations and common ancestors.
 8. **Adaptive selection.** Correct confidence after branch pruning, tournament

@@ -3,16 +3,16 @@
 Status: repository candidate for the next arXiv revision
 
 Prepared: 17 July 2026
-Base commit: `4442f861f86c5c5d6c295538b76b6d4a5049f22f`
+Release parent: `83b694974e2e2381d09ce8b01393fd8dd6a5d939`
 
 ## Candidate manuscript
 
-- Title: **Evidence-Aware Reduction for Forkable Sandboxes: Separating
+- Title: **Evidence-Aware MapReduce for Forkable Compute: Separating
   Execution Fan-Out from Independent Evidence**
 - Canonical submission PDF: `submission/evidence-aware-reduction.pdf`
 - Pages: 5
-- SHA-256: `e0d274f665cfbc8fbcf9a842ffc025ba4911a2f028d0800d0723aeda3decaac1`
-- Size: 409,242 bytes
+- SHA-256: `222e358f06c595cd6751e0c0a730aab78938ea2ce8bed989cb407041bdead43e`
+- Size: 409,112 bytes
 - Reproducible metadata epoch: 17 July 2026 UTC
 - Canonical and historical PDF paths: byte-identical
 
@@ -49,17 +49,17 @@ Base commit: `4442f861f86c5c5d6c295538b76b6d4a5049f22f`
   batch size, success count, p50/p95, and total wall time.
 - [ ] Verify the product-normalizer equation includes the residual
   heterogeneity term `exp(-Delta/2)`.
-- [ ] Verify the robustness language still labels the stress clip as a heuristic,
-  not a Byzantine guarantee.
+- [ ] Verify the robustness language describes the stress clip as a heuristic with
+  explicitly limited scope.
 - [ ] Verify the bibliography includes the cited statistical, systems, and AI
   literature.
 - [ ] Verify the artifact URL resolves to the final commit/tag, then record both
   identifiers in the release notes.
 - [ ] Verify the rendered PDF is five pages, dated 17 July 2026, and has SHA-256
-  `e0d274f665cfbc8fbcf9a842ffc025ba4911a2f028d0800d0723aeda3decaac1`.
+  `222e358f06c595cd6751e0c0a730aab78938ea2ce8bed989cb407041bdead43e`.
 - [ ] Replace the website's candidate-version note after the public record updates.
-- [ ] Merge the release PR, create a paper tag, and record the final commit and tag in
-  the GitHub release notes.
+- [ ] After the public record updates, create a paper tag and record the final commit
+  and tag in the GitHub release notes.
 
 As of 17 July 2026, arXiv:2607.09689 v2 (14 July 2026) still exposes the older
 title and thermodynamic abstract. That upload is the only remaining

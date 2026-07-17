@@ -32,9 +32,8 @@ $\Longrightarrow$
 add $(P,q,c,N)$;\\
 return statistics\\and provenance}}
 \end{tabular}
-\caption{Execution isolation is not evidence independence. Separate workers A and B declare the
-same evidence $e_1$, which the exact-overlap guard rejects. Shared ancestry is transported even
-when identifiers differ, but the prototype does not yet turn that lineage into a correlation
-model.}
+\caption{Separate workers can still reuse evidence. Workers A and B declare the same evidence
+$e_1$, so the exact-overlap guard rejects their joint reduction. The shared root $r$ remains in
+lineage when identifiers differ, preserving a signal that a future correlation model could use.}
 \label{fig:contract}
 \end{figure*}

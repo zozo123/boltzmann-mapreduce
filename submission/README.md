@@ -1,7 +1,9 @@
 # Flat submission package
 
-This directory is the complete paper submission package. It intentionally has no
-subdirectories.
+This directory contains the complete submission package for **Evidence-Aware
+MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent
+Evidence**. Every source and build artifact sits at the top level so the package
+can be uploaded as-is.
 
 Files:
 

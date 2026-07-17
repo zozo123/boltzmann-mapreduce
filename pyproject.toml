@@ -1,7 +1,7 @@
 [project]
 name = "bmr"
 version = "0.1.0"
-description = "Evidence-aware Gaussian reduction for forkable workers"
+description = "Evidence-aware MapReduce for forkable compute"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

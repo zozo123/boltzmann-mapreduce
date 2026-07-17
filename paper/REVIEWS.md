@@ -3,9 +3,9 @@
 ## Revision standard
 
 The current paper was rewritten against four demanding review lenses: distributed
-systems, mathematical statistics, agent research, and adversarial robustness. The goal
-was not to make every dimension look complete; it was to make every claim traceable to
-the artifact or explicitly mark it as a research agenda.
+systems, mathematical statistics, agent research, and adversarial robustness. The
+revision traces empirical claims to the artifact and labels planned work as a research
+agenda.
 
 | Lens | Blocking concern | Revision |
 |---|---|---|
@@ -36,13 +36,12 @@ the artifact or explicitly mark it as a research agenda.
 - No genuine non-IID/random-effects evaluation.
 - No controlled process/container/cold-VM/snapshot benchmark.
 - No formal robust-aggregation guarantee.
-- Evidence and lineage fields reach the finalized result but are not yet used in a
-  correlation model; distinct
-  evidence IDs are not proof of independence.
+- Evidence and lineage fields reach the finalized result. A future correlation model
+  can use them to represent dependence; distinct evidence IDs record declared evidence
+  boundaries and still require validation.
 - Only one named-snapshot end-to-end statistical execution is committed.
 
-These limitations are now part of the paper's scientific boundary rather than being
-hidden behind projected tables.
+The paper states these limitations as part of its scientific boundary.
 
 ## Issue #2 resolution (17 July 2026)
 
@@ -52,7 +51,7 @@ hidden behind projected tables.
 | Commutativity claim | Paper, README, website, docstring, and tests distinguish commutative numeric state from order-sensitive lineage |
 | Platform table | Added state source, measured boundary, client concurrency, batch, success, p50, p95, and total wall time |
 | Heterogeneity statistic | Derived the weighted-residual identity, identified scalar Cochran $Q$, stated calibration, and added classical citations |
-| Public version synchronization | Repository sources and every tracked PDF alias are synchronized; arXiv v2 still requires an external next-version upload |
+| Public version synchronization | Repository sources and every tracked PDF alias are synchronized; the next arXiv upload will publish the revision externally |
 
 The rewrite also centers evidence-aware reduction, replaces the loose JSON-schema
 claim with a serialized-record contract, uses regular asymptotic normality rather

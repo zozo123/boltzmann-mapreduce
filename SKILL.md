@@ -1,14 +1,15 @@
 ---
 name: boltzmann-mapreduce
-description: Use for combining independent, non-overlapping statistical summaries that target the same parameter and carry estimates plus valid uncertainty. Do not use for correlated agent votes, overlapping evidence, different local truths, or adversarial workers without a separately justified model.
+description: Use for evidence-aware MapReduce over independent, non-overlapping statistical summaries that target the same parameter and carry estimates plus valid uncertainty. Correlated votes, overlapping evidence, different local truths, and adversarial workers require a separately justified model.
 ---
 
-# Boltzmann MapReduce
+# Evidence-Aware MapReduce for Forkable Compute
 
 Use this package when independent workers return estimates with unequal information and
 you need an evidence-aware Gaussian/confidence-distribution merge. The method is
 established inverse-information pooling; the optional thermodynamic notation is a naming
-convention, not a general trust score or an automatic defense against confident agents.
+convention. The evidence contract makes trust assumptions explicit, and robustness
+requires a separately justified defense.
 
 ## Preconditions
 
@@ -20,9 +21,10 @@ Use `reduce_partition` only when all are true:
 - A regular asymptotic Gaussian approximation is suitable, or the model is exactly quadratic.
 - Exact model-specific sufficient-statistic aggregation is unavailable or inappropriate.
 
-Do not multiply factors merely because workers ran in separate sandboxes. Isolation does
-not imply independence. Repeated non-empty `evidence_ids` are rejected by default, but
-distinct identifiers are not proof of independence; inspect `lineage` too.
+Multiply factors after establishing that their evidence is independent. Separate
+sandboxes provide execution isolation, while `evidence_ids` and `lineage` record declared
+evidence boundaries and ancestry. The reducer rejects repeated non-empty `evidence_ids`
+by default; callers should also validate distinct identifiers and inspect shared lineage.
 
 ## API
 
@@ -58,19 +60,20 @@ g_k(theta) = exp(-1/2 (theta-theta_hat_k)' P_k (theta-theta_hat_k))
            = exp(-beta_k E_k(theta)), beta_k = n_k.
 ```
 
-`beta = n` follows from defining energy per observation. The invariant object is total
-precision `P_k`, not sample size alone. The reducer adds Gaussian natural parameters;
-this is standard confidence-distribution/inverse-covariance pooling.
+`beta = n` follows from defining energy per observation. Total precision `P_k` is the
+invariant quantity; sample size contributes through the chosen decomposition. The reducer
+adds Gaussian natural parameters; this is standard confidence-distribution/inverse-covariance
+pooling.
 
 ## Outlier heuristic
 
 `byzantine_clip(cds)` caps unusual precision volume and applies a redescending,
 coordinate-scale-aware multivariate location weight. It returns clipped copies and
-flagged IDs without mutating inputs.
+flagged IDs while preserving the inputs.
 
-This function is a stress-test heuristic, not a Byzantine guarantee. It is not rotation
-invariant and has not been evaluated against collusion, adaptive attacks, or genuine
-cross-worker heterogeneity.
+This function is a stress-test heuristic with coordinate-dependent behavior. Its current
+evaluation covers the supplied attack scenario; collusion, adaptive attacks, genuine
+cross-worker heterogeneity, and certified Byzantine robustness remain open work.
 
 ## Demo
 
@@ -86,8 +89,8 @@ restore workers from a named snapshot when authenticated.
 
 ## Forward-looking use with agents
 
-Agent-reported confidence is not automatically calibrated. For agent workloads, derive
-uncertainty from external evidence such as held-out tests, repeated execution, or an
-independent verifier. Shared model weights, prompts, repositories, tests, and fork
-ancestors create correlation; use lineage and evidence identifiers to avoid double
-counting. Correlation-aware reduction over a fork DAG remains future research.
+For agent workloads, calibrate uncertainty from external evidence such as held-out tests,
+repeated execution, or an independent verifier. Shared model weights, prompts,
+repositories, tests, and fork ancestors create correlation; lineage and evidence
+identifiers help detect repeated evidence. Correlation-aware reduction over a fork DAG
+remains future research.

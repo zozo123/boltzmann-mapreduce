@@ -1,14 +1,14 @@
-# Evidence-Aware Reduction for Forkable Sandboxes
+# Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence
 
-Snapshot-backed sandboxes make execution fan-out cheap. They do not make worker
-outputs independent evidence. Branches can share a model, prompt, repository,
-tests, observations, or ancestor; reducing them as independent votes can turn one
-repeated error into high-confidence consensus.
+Forkable compute can launch many workers from one snapshot. Those workers often
+inherit the same model, prompt, repository, tests, observations, or ancestor. A
+reducer therefore needs to know where each answer came from and how much evidence
+supports it. Otherwise, one repeated mistake can look like confident agreement.
 
-This repository contains a small evidence-aware reducer, deterministic checks, raw
-execution traces, and the paper:
+This repository pairs a small evidence-aware reducer with deterministic checks,
+raw execution traces, and the paper:
 
-- [Evidence-Aware Reduction for Forkable Sandboxes](https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf)
+- [Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence](https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf)
 - [Interactive fusion explorer](https://zozo123.github.io/boltzmann-mapreduce/#explorer)
 
 ## Worker contract
@@ -23,12 +23,13 @@ A `CD` worker record carries:
 - `meta`: worker-level execution and application metadata.
 
 The implementation validates dimensions, finite values, integer sample size,
-provenance shape, symmetry, and positive definiteness. It rejects overlap among
+ID and lineage shape, symmetry, and positive definiteness. It rejects overlap among
 nonempty `evidence_ids` unless the caller uses an explicit unsafe override.
 
-> Evidence labels and lineage are transport fields, not verified identities or a
-> correlation model. Empty IDs, different labels for the same data, shared noise,
-> and mismatched estimands remain the caller's responsibility.
+> Evidence IDs and lineage are declarations supplied by the caller. They make
+> repeated identifiers auditable. The application must establish reliable identity,
+> account for hidden data reuse and shared noise, and ensure that workers estimate
+> the same target.
 
 For total precision $P_k=n_kJ_k$, information vector
 $q_k=P_k\hat\theta_k$, and quadratic constant
@@ -41,23 +42,22 @@ Sigma_pool   = inverse(P)
 Delta        = c - q' solve(P, q)
 ```
 
-The numeric state is associative and commutative in exact arithmetic. Provenance
-has separate semantics: evidence IDs are canonicalized, while lineage uses
-order-preserving deduplication. `finalize_canonical(...)` returns `evidence_ids`
-and `lineage` with the pooled statistics; worker `meta` remains a worker-level
-field.
+The numeric state is associative and commutative in exact arithmetic. Evidence IDs
+are sorted into a stable order, while lineage keeps the first occurrence of each
+ancestor. `finalize_canonical(...)` returns both fields with the pooled statistics.
+Worker `meta` stays attached to its original worker record.
 
 $\Delta$ is the weighted residual heterogeneity statistic—Cochran's $Q$ in
-the scalar inverse-variance case. The unit-height Gaussian product has
+the scalar inverse-variance case. For Gaussian factors whose peak value is one,
 
 ```text
 -log Z = -p/2 log(2*pi) + 1/2 log|P| + 1/2 Delta.
 ```
 
-The API field `disagreement_energy` stores $\Delta/2$. Cholesky solves and
-log-determinants avoid explicit numerical inversion. A negative computed $\Delta$
-is clipped only within a scale-aware roundoff tolerance; a larger violation is
-rejected as an inconsistent canonical summary.
+The API field `disagreement_energy` stores $\Delta/2$. The implementation uses
+Cholesky solves and log-determinants for numerical stability. It clips a negative
+computed $\Delta$ only when the value falls within a scale-aware roundoff
+tolerance; a larger violation signals an inconsistent summary and raises an error.
 
 ## What the artifact establishes
 
@@ -65,11 +65,11 @@ rejected as an inconsistent canonical summary.
 |---|---|---|
 | Gaussian algebra | Closed-form, flat, and tree reductions agree | Common target and independent estimation noise |
 | Record validation | Malformed inputs and exact repeated nonempty IDs are rejected | IDs are caller-supplied and unverified |
-| Provenance | Evidence IDs and lineage reach the finalized pooled result | Lineage is not yet a fork-DAG covariance model |
+| Provenance | Evidence IDs and lineage reach the finalized pooled result | Applications must supply any covariance model implied by lineage |
 | Logistic sanity check | Expected direction under severe IID size imbalance | Equal averaging is a deliberately weak baseline |
-| Forged-precision trace | Vulnerability and a transparent stress-test clip | No Byzantine or affine-invariant guarantee |
-| islo integration | One four-worker named-snapshot end-to-end trace | No isolated restore-speed claim |
-| Provider sweeps | Three exercised API paths with raw timing logs | Different operation boundaries; no provider ranking |
+| Forged-precision trace | Vulnerability and a transparent stress-test clip | The trace covers this case; broader robustness guarantees need a different reducer |
+| islo integration | One four-worker named-snapshot end-to-end trace | Timing covers the full restore–run–capture path |
+| Provider sweeps | Three exercised API paths with raw timing logs | Operation boundaries differ, so each timing characterizes its own path |
 
 ## Quickstart
 
@@ -83,8 +83,8 @@ uv run --locked python demo.py --scenario linreg
 uv run --locked python demo.py --scenario logistic
 ```
 
-The local backend uses Python's platform-dependent process pool and makes no
-copy-on-write or guaranteed `fork()` claim.
+The local backend uses Python's process pool. Its `fork()` and copy-on-write
+behavior varies by platform.
 
 ## Named-snapshot execution
 
@@ -109,8 +109,9 @@ uv run --locked --extra daytona python scripts/daytona_fanout.py
 uv run --locked --extra tensorlake python scripts/tensorlake_fanout.py
 ```
 
-They require provider credentials and may consume quota. The automated local
-workflow imports their locked SDKs but does not execute cloud sweeps.
+These commands require provider credentials and may consume quota. The automated
+local workflow verifies the locked SDK imports; cloud sweeps run only through the
+explicit commands above.
 
 | Platform | State source | Measured operation | Client concurrency | Batch | Success | p50 | p95 | Total wall |
 |---|---|---|---:|---:|---:|---:|---:|---:|
@@ -125,8 +126,8 @@ raw logs as capacity observations.
 
 ## Build the paper
 
-The paper builder uses a temporary TeX tree, rejects release-blocking warnings,
-and publishes byte-identical canonical and compatibility copies:
+The paper builder uses a temporary TeX tree, stops on release-blocking warnings,
+and publishes identical bytes under the current and legacy filenames:
 
 ```bash
 uv run --locked python scripts/build_paper.py
@@ -138,33 +139,33 @@ Canonical outputs:
 - `output/pdf/evidence-aware-reduction.pdf`
 - `docs/evidence-aware-reduction.pdf`
 
-All arXiv inputs are flat under `submission/`: `main.tex`, `body.tex`,
-`fig_contract.tex`, and `refs.bib`. There are no nested figure or source
-directories.
+All arXiv inputs sit directly under `submission/`: `main.tex`, `body.tex`,
+`fig_contract.tex`, and `refs.bib`.
 
-Historical PDF paths are retained as byte-identical aliases so existing links do
-not serve stale manuscripts. The full local release workflow is:
+Historical PDF paths serve the same bytes, which keeps existing links current.
+The full local release workflow is:
 
 ```bash
 uv run --locked python scripts/verify_e2e.py
 ```
 
-Cloud-provider sweeps are excluded from that command.
+Cloud-provider sweeps stay separate and require the explicit commands shown above.
 
 ## Public paper status
 
 The repository paper is the candidate next revision titled **Evidence-Aware
-Reduction for Forkable Sandboxes: Separating Execution Fan-Out from Independent
+MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent
 Evidence**.
 
 The public [arXiv:2607.09689](https://arxiv.org/abs/2607.09689) record was last
 revised as v2 on 14 July 2026 and still uses the earlier title and thermodynamic
-abstract. Uploading this repository revision as the next arXiv version is the one
-remaining external synchronization step. See
+abstract. The repository and arXiv records will match after this revision is
+uploaded as the next arXiv version. See
 [`paper/RELEASE_CHECKLIST.md`](paper/RELEASE_CHECKLIST.md).
 
 ## License status
 
-No software license file is currently present. Public visibility does not grant
-reuse rights; select a code license before presenting the implementation as open
-source. The arXiv document license does not automatically license the code.
+Default copyright currently governs the code because the repository has no
+software license. Choose a code license before describing the implementation as
+open source. The code needs its own license in addition to the arXiv document
+license.

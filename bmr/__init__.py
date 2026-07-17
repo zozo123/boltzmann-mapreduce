@@ -1,4 +1,4 @@
-"""Evidence-aware Gaussian reduction for independent worker summaries."""
+"""Evidence-aware MapReduce for independent summaries from forkable compute."""
 from bmr.core import (
     CD, CanonicalSummary, Pooled, finalize_canonical,
     map_mean, map_linreg, map_logistic, reduce_partition,

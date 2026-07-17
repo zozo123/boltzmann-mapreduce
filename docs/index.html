@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07110e">
-  <title>Boltzmann MapReduce — Evidence-Aware Reduction</title>
-  <meta name="description" content="A worker-result contract that separates execution fan-out from independent evidence.">
+  <title>Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence</title>
+  <meta name="description" content="Fork workers freely while keeping their evidence, uncertainty, and shared origins visible.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://zozo123.github.io/boltzmann-mapreduce/">
-  <meta property="og:title" content="Boltzmann MapReduce — Evidence-Aware Reduction">
-  <meta property="og:description" content="Parallel answers are cheap. Knowing what to trust is the hard part.">
+  <meta property="og:title" content="Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence">
+  <meta property="og:description" content="Separate execution fan-out from independent evidence.">
   <meta property="og:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Three uncertain worker distributions merging into one sharper pooled result">
+  <meta property="og:image:alt" content="Three uncertain worker distributions merging into one more precise combined result">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Boltzmann MapReduce">
-  <meta name="twitter:description" content="An evidence-aware result contract for forkable workers.">
+  <meta name="twitter:title" content="Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence">
+  <meta name="twitter:description" content="Separate execution fan-out from independent evidence.">
   <meta name="twitter:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
   <style>
     :root {
@@ -958,14 +958,14 @@
 
   <header class="site-header">
     <nav class="wrap" aria-label="Primary navigation">
-      <a class="brand" href="#top" aria-label="Boltzmann MapReduce home">
+      <a class="brand" href="#top" aria-label="Evidence-Aware MapReduce home">
         <span class="brand-mark" aria-hidden="true">β</span>
-        <span>Boltzmann MapReduce</span>
+        <span>Evidence-Aware MapReduce</span>
       </a>
       <div class="nav-links">
         <a href="#idea">The idea</a>
         <a href="#explorer">Live explorer</a>
-        <a href="#boundary">Boundaries</a>
+        <a href="#boundary">Where it applies</a>
         <a href="#citation">Citation</a>
         <a class="nav-pill" href="https://github.com/zozo123/boltzmann-mapreduce">GitHub ↗</a>
       </div>
@@ -976,9 +976,9 @@
     <section class="hero" id="top">
       <div class="wrap hero-grid">
         <div>
-          <p class="kicker">Evidence-aware reduction</p>
-          <h1>Parallel answers are cheap. Knowing what to <em>trust</em> is the hard part.</h1>
-          <p class="hero-copy">Make every worker return an estimate, its uncertainty, and the origin of its evidence. Then combine independent results with weight earned by statistical information.</p>
+          <p class="kicker">Evidence-Aware MapReduce for Forkable Compute</p>
+          <h1>Separate execution fan-out from <em>independent evidence</em>.</h1>
+          <p class="hero-copy">Fork workers freely. Each answer carries an estimate, its uncertainty, and where its evidence came from. Independent results then combine in proportion to the information they contain.</p>
           <div class="actions">
             <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Read the paper</a>
             <a class="button anchor" href="#explorer">Stress-test the reducer</a>
@@ -1013,17 +1013,17 @@
                 <div class="worker-info"><span>info</span><div class="info-bar"><div class="info-fill" data-info-bar="2"></div></div></div>
               </div>
             </div>
-            <div class="merge-node" aria-label="Add compatible natural parameters">
+            <div class="merge-node" aria-label="Add compatible precision summaries">
               <span><span class="sigma">Σ</span><span class="merge-label">P · q · c</span></span>
             </div>
             <div class="result-card">
               <div class="result-top">
-                <span class="result-label">Pooled result</span>
+                <span class="result-label">Combined result</span>
                 <span class="confidence-badge">with uncertainty</span>
               </div>
               <p class="result-value"><span id="pooledValue">4.98</span> <small id="pooledUncertainty">± 0.10</small></p>
               <div class="chart-wrap">
-                <canvas id="fusionChart" role="img" aria-label="Three Gaussian worker factors and their sharper pooled result">Three uncertain worker estimates combine into one information-weighted result.</canvas>
+                <canvas id="fusionChart" role="img" aria-label="Three uncertain worker estimates and their more precise combined result">Three uncertain worker estimates combine into one information-weighted result.</canvas>
               </div>
               <div class="axis-labels"><span>4.3</span><span>estimate θ</span><span>5.7</span></div>
               <div class="disagreement"><span>Disagreement energy</span><strong id="disagreementValue">LOW · 0.19</strong></div>
@@ -1034,12 +1034,12 @@
             <button class="scenario" type="button" data-scenario="unequal" aria-pressed="false">Unequal information</button>
             <button class="scenario" type="button" data-scenario="conflict" aria-pressed="false">Confident conflict</button>
           </div>
-          <p class="lab-caption" id="scenarioCaption">Agreement sharpens the pooled factor while keeping its location nearly stable. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence.</p>
+          <p class="lab-caption" id="scenarioCaption">When workers agree, the combined estimate becomes more precise and moves very little. These illustrative curves assume independent, non-overlapping evidence.</p>
         </div>
       </div>
 
       <div class="wrap hero-foot" aria-label="Artifact summary">
-        <p>The statistical core is established inverse-information pooling. The contribution is the result contract, the auditable merge, and the explicit boundary around dependence.</p>
+        <p>The mathematics is established inverse-information pooling. This artifact turns it into an auditable worker contract and keeps declared evidence visible at the merge.</p>
         <div class="metric"><strong>✓</strong><span>Unit tests</span></div>
         <div class="metric"><strong>3</strong><span>Sanity paths</span></div>
         <div class="metric"><strong>1</strong><span>Locked E2E</span></div>
@@ -1050,36 +1050,36 @@
       <div class="wrap">
         <div class="idea-head">
           <div>
-            <p class="section-label">The idea in one glance</p>
-            <h2>Keep the information that ordinary reducers throw away.</h2>
+            <p class="section-label">The idea at a glance</p>
+            <h2>Keep the evidence with the answer.</h2>
           </div>
-          <p class="idea-aside">A scalar says <em>what</em> a worker thinks. A statistical result also says <em>how much evidence supports it</em> and declares evidence identifiers so exact repeats can be detected.</p>
+          <p class="idea-aside">A useful worker result says what the worker estimated, how uncertain that estimate is, and which evidence produced it. Declared identifiers expose repeated labels before they are counted twice.</p>
         </div>
 
         <div class="flow" aria-label="Four-stage evidence-aware reduction flow">
           <article class="flow-card">
             <div class="flow-node" aria-hidden="true">xₖ</div>
             <div class="flow-index">01 · Partition</div>
-            <h3>Disjoint evidence</h3>
-            <p>Each worker receives a non-overlapping shard targeting the same parameter.</p>
+            <h3>Plan distinct evidence</h3>
+            <p>Give each worker a non-overlapping shard that measures the same target.</p>
           </article>
           <article class="flow-card">
             <div class="flow-node" aria-hidden="true">θ̂ₖ</div>
             <div class="flow-index">02 · Emit</div>
-            <h3>Estimate + information</h3>
-            <p>Workers return location, uncertainty, sample size, lineage, and evidence IDs.</p>
+            <h3>Return a complete result</h3>
+            <p>Each worker returns its estimate, uncertainty, sample size, lineage, and evidence IDs.</p>
           </article>
           <article class="flow-card">
             <div class="flow-node" aria-hidden="true">Σ</div>
             <div class="flow-index">03 · Reduce</div>
-            <h3>Add natural parameters</h3>
-            <p>Compatible Gaussian summaries merge associatively as P, q, and c.</p>
+            <h3>Add compact summaries</h3>
+            <p>Compatible Gaussian results merge by adding the small summaries P, q, and c.</p>
           </article>
           <article class="flow-card">
             <div class="flow-node" aria-hidden="true">θ̂</div>
             <div class="flow-index">04 · Audit</div>
-            <h3>Result + conflict signal</h3>
-            <p>Return the pooled estimate, covariance, and exact disagreement energy.</p>
+            <h3>Report the result and conflict</h3>
+            <p>Return the combined estimate, covariance, and exact disagreement energy.</p>
           </article>
         </div>
 
@@ -1100,19 +1100,19 @@
         <div class="playground-head">
           <div>
             <p class="section-label">Live fusion explorer</p>
-            <h2>Interrogate the diagram. Push it until it breaks.</h2>
+            <h2>Try the cases that matter.</h2>
           </div>
-          <p class="lead">Drag worker peaks, change their uncertainty, remove a worker, stream new samples, or deliberately reuse evidence. The reducer updates in real time—and refuses a merge when provenance fails.</p>
+          <p class="lead">Drag the worker estimates, change their uncertainty, remove a worker, stream new samples, or reuse an evidence ID. The reducer updates immediately and stops a merge when it sees a repeated ID.</p>
         </div>
 
         <div class="explorer-shell">
           <div class="explorer-visual">
             <div class="explorer-card-head">
-              <span class="explorer-card-title">Information field · θ</span>
-              <span class="explorer-status" data-explorer-status data-tone="valid" aria-live="polite">Merge valid · no repeated identifiers detected</span>
+              <span class="explorer-card-title">Worker estimates · θ</span>
+              <span class="explorer-status" data-explorer-status data-tone="valid" aria-live="polite">ID check passed · declared IDs are distinct</span>
             </div>
             <div class="explorer-chart-stage">
-              <canvas id="explorerChart" role="img" aria-label="Four adjustable worker distributions and their information-weighted pooled result">Four adjustable Gaussian worker factors combine into an information-weighted pooled result.</canvas>
+              <canvas id="explorerChart" role="img" aria-label="Four adjustable worker distributions and their information-weighted combined result">Four adjustable Gaussian worker estimates combine into an information-weighted result.</canvas>
               <span class="chart-instruction">Drag a colored handle horizontally · wider curves carry less information</span>
             </div>
             <div class="explorer-legend" aria-label="Chart legend">
@@ -1120,15 +1120,15 @@
               <span class="legend-item"><i class="legend-swatch" style="--legend-color:#83b5ff"></i>Worker B</span>
               <span class="legend-item"><i class="legend-swatch" style="--legend-color:#f6b95f"></i>Worker C</span>
               <span class="legend-item"><i class="legend-swatch" style="--legend-color:#f28b72"></i>Worker D</span>
-              <span class="legend-item"><i class="legend-swatch pooled"></i>Pooled factor</span>
+              <span class="legend-item"><i class="legend-swatch pooled"></i>Combined result</span>
             </div>
             <div class="explorer-stats" aria-label="Live reducer statistics">
-              <div class="explorer-stat"><span class="stat-label">Pooled θ̂</span><strong class="stat-value" data-explorer-pooled>4.99</strong></div>
+              <div class="explorer-stat"><span class="stat-label">Combined θ̂</span><strong class="stat-value" data-explorer-pooled>4.99</strong></div>
               <div class="explorer-stat"><span class="stat-label">95% interval</span><strong class="stat-value" data-explorer-ci>[4.88, 5.10]</strong></div>
               <div class="explorer-stat"><span class="stat-label">Disagreement Δ/2</span><strong class="stat-value" data-explorer-energy>0.42</strong></div>
               <div class="explorer-stat"><span class="stat-label">Total precision P</span><strong class="stat-value" data-explorer-precision>333.1</strong></div>
             </div>
-            <p class="explorer-formula" data-explorer-formula>P = Σσₖ⁻² · q = ΣPₖθ̂ₖ · pooled θ̂ = P⁻¹q</p>
+            <p class="explorer-formula" data-explorer-formula>P = Σσₖ⁻² · q = ΣPₖθ̂ₖ · combined θ̂ = P⁻¹q</p>
           </div>
 
           <aside class="explorer-controls" aria-label="Fusion explorer controls">
@@ -1186,7 +1186,7 @@
               </article>
             </div>
 
-            <div class="evidence-ledger"><span>Evidence ledger</span><code data-evidence-ledger>E-01 · E-02 · E-03 · E-04</code></div>
+            <div class="evidence-ledger"><span>Declared evidence IDs</span><code data-evidence-ledger>E-01 · E-02 · E-03 · E-04</code></div>
           </aside>
         </div>
       </div>
@@ -1195,22 +1195,22 @@
     <section class="value-section">
       <div class="wrap value-grid">
         <div class="value-statement">
-          <p class="section-label">Why this is valuable</p>
-          <h2>An honest interface for evidence-aware reduction.</h2>
-          <p class="lead">The reducer carries evidence strength, declared identity, lineage, and disagreement from worker output to pooled result.</p>
+          <p class="section-label">Why this matters</p>
+          <h2>Every answer stays accountable to its evidence.</h2>
+          <p class="lead">The reducer carries evidence strength, declared identity, lineage, and disagreement all the way from each worker to the combined result.</p>
         </div>
         <div class="value-cards">
           <article class="value-card">
             <div class="value-number">01</div>
-            <div><h3>Evidence earns weight</h3><p>Total precision <code>Pₖ = nₖJₖ</code> determines each estimate's contribution to the pooled result.</p></div>
+            <div><h3>Evidence earns weight</h3><p>Total precision <code>Pₖ = nₖJₖ</code> determines each estimate's contribution to the combined result.</p></div>
           </article>
           <article class="value-card">
             <div class="value-number">02</div>
-            <div><h3>Merging scales as a tree</h3><p>The numeric canonical state is associative and commutative. Provenance is aggregated separately with explicit field semantics.</p></div>
+            <div><h3>Merging scales as a tree</h3><p>The compact numeric state can merge in any tree shape. Evidence IDs are sorted, while lineage keeps first-seen order.</p></div>
           </article>
           <article class="value-card">
             <div class="value-number">03</div>
-            <div><h3>Conflict stays visible</h3><p>The product normalizer contains a disagreement term. Confident workers that point in different directions leave an explicit audit signal.</p></div>
+            <div><h3>Conflict stays visible</h3><p>A disagreement term records how far the workers lie from their combined estimate. Confident workers that point in different directions leave a clear signal.</p></div>
           </article>
         </div>
       </div>
@@ -1218,45 +1218,45 @@
 
     <section class="boundary" id="boundary">
       <div class="wrap">
-        <p class="section-label">The scientific boundary</p>
-        <h2>Separate workers still require independent evidence.</h2>
-        <p class="lead">Multiplication applies when workers estimate the same target from independent, non-overlapping evidence. The evidence design carries this scientific burden.</p>
+        <p class="section-label">Where the model applies</p>
+        <h2>The experiment must establish independent evidence.</h2>
+        <p class="lead">Combine worker summaries when they estimate the same target from independent, non-overlapping evidence. The number of workers alone says nothing about independence.</p>
         <div class="boundary-grid">
           <article class="boundary-card good">
             <div class="boundary-icon" aria-hidden="true">✓</div>
-            <h3>Use it when</h3>
+            <h3>A good fit</h3>
             <p>Worker summaries have a defensible uncertainty model and genuinely distinct evidence.</p>
             <ul class="boundary-list">
               <li>One shared parameter and compatible units</li>
               <li>Disjoint evidence or explicitly modeled dependence</li>
-              <li>Valid Gaussian or local-asymptotic approximation</li>
+              <li>A sound Gaussian approximation, exact or asymptotic</li>
             </ul>
           </article>
           <article class="boundary-card bad">
             <div class="boundary-icon" aria-hidden="true">×</div>
-            <h3>Requires a different model</h3>
-            <p>Correlated agents, adversarial workers, and different local truths require explicit dependence or robustness models.</p>
+            <h3>Choose a broader model when</h3>
+            <p>Workers share errors, may act adversarially, or estimate different local truths.</p>
             <ul class="boundary-list">
-              <li>Self-reported model confidence</li>
-              <li>An automatic Byzantine defense</li>
-              <li>Proof that separate sandboxes are independent</li>
+              <li>Model-generated confidence needs calibration</li>
+              <li>Adversarial workers need robust aggregation</li>
+              <li>Shared snapshots need a dependence argument</li>
             </ul>
           </article>
         </div>
-        <div class="warning-band"><strong>Core requirement</strong><span>Shared prompts, models, repositories, tests, or fork ancestors create common-mode error. Provenance supplies the audit trail; correlation modeling remains a separate requirement.</span></div>
+        <div class="warning-band"><strong>Core requirement</strong><span>Shared prompts, models, repositories, tests, or fork ancestors can produce the same error in many workers. Declared IDs expose repeated labels; a covariance model must cover subtler shared sources.</span></div>
       </div>
     </section>
 
     <section class="evidence" id="evidence">
       <div class="wrap evidence-top">
         <figure class="published-figure">
-          <img src="./fig_gibbs.png" alt="Information-weighted Gaussian worker factors and their pooled estimate">
-          <figcaption>Published synthetic illustration: narrower Gaussian factors carry more information, and their product is sharper. The figure visualizes established precision pooling.</figcaption>
+          <img src="./fig_gibbs.png" alt="Information-weighted Gaussian worker curves and their combined estimate">
+          <figcaption>Synthetic illustration: narrower Gaussian curves carry more information, so the combined result becomes more precise. This is the standard precision-pooling calculation.</figcaption>
         </figure>
         <div class="evidence-copy">
           <p class="section-label">Auditable artifact</p>
-          <h2>Small enough to inspect. Complete enough to rerun.</h2>
-          <p>The repository checks Gaussian algebra, the closed-form product integral, tree reduction, serialized-record validation, the overlap guard, and three deterministic statistical paths. Platform logs document execution paths; a controlled cross-provider benchmark remains future work.</p>
+          <h2>Read it, rerun it, and challenge it.</h2>
+          <p>The tests cover the Gaussian calculation, its closed-form integral, tree-shaped merges, serialized records, repeated evidence IDs, and three deterministic statistical examples. Platform logs document the execution paths exercised so far. A controlled cross-provider benchmark remains future work.</p>
           <div class="fact-list">
             <div class="fact"><strong>Mean</strong><span>Information-pooled 4.9542 versus centralized 4.9546 on twelve synthetic shards.</span></div>
             <div class="fact"><strong>0.033</strong><span>Coefficient gap to centralized OLS in the committed linear-regression sanity check.</span></div>
@@ -1273,10 +1273,10 @@
           <p class="section-label">Citation</p>
           <h2>Cite the published arXiv record.</h2>
           <p class="citation-record"><cite>Yossi Eliaz. “Boltzmann MapReduce: A Partition-Function Reduce for Forkable Sandboxes.”</cite> arXiv:2607.09689 [cs.AI], 2026. <a href="https://doi.org/10.48550/arXiv.2607.09689">doi:10.48550/arXiv.2607.09689</a>.</p>
-          <p class="note"><strong>Version note:</strong> Citation metadata follows arXiv v2, revised 14 July 2026. The repository PDF is the candidate next revision, with a new title and evidence-aware framing; upload it as the next arXiv version before treating the records as synchronized.</p>
+          <p class="note"><strong>Version note:</strong> This citation follows arXiv v2, revised 14 July 2026. The repository PDF is the candidate next revision, titled <cite>“Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence.”</cite> ArXiv will continue to show the v2 title and abstract until that revision is uploaded.</p>
           <div class="actions">
             <a class="button" href="https://arxiv.org/abs/2607.09689">Open arXiv record</a>
-            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Read repository candidate</a>
+            <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Read the candidate revision</a>
           </div>
         </div>
         <div class="code-card" aria-label="BibTeX citation"><pre>@misc{eliaz2026boltzmann,
@@ -1297,8 +1297,8 @@
       <div class="wrap artifact-grid">
         <div class="artifact-copy">
           <p class="section-label">Reproduce locally</p>
-          <h2>One locked path from tests to paper.</h2>
-          <p>The complete workflow verifies Python tests, package builds, local demos, generated figures, the paper build, identical release PDFs, and the website contract.</p>
+          <h2>One command checks the artifact from tests to paper.</h2>
+          <p>The locked workflow checks the Python package, local demos, generated figures, paper build, release PDFs, and website contract.</p>
           <div class="actions">
             <a class="button primary" href="https://github.com/zozo123/boltzmann-mapreduce">Explore the repository</a>
             <a class="button" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Open repository PDF</a>
@@ -1319,7 +1319,7 @@
 
   <footer>
     <div class="wrap footer-grid">
-      <span><strong>Boltzmann MapReduce</strong> · Evidence-aware reduction for forkable workers.</span>
+      <span><strong>Evidence-Aware MapReduce for Forkable Compute</strong> · Separating execution fan-out from independent evidence.</span>
       <div class="footer-links">
         <a href="https://github.com/zozo123/boltzmann-mapreduce">GitHub</a>
         <a href="https://arxiv.org/abs/2607.09689">arXiv</a>
@@ -1335,19 +1335,19 @@
           means: [4.88, 5.03, 4.96],
           sigmas: [0.18, 0.10, 0.22],
           label: "LOW",
-          caption: "Agreement sharpens the pooled factor while keeping its location nearly stable. Curves are illustrative; all three scenarios assume independent, non-overlapping evidence."
+          caption: "When workers agree, the combined estimate becomes more precise and moves very little. These illustrative curves assume independent, non-overlapping evidence."
         },
         unequal: {
           means: [4.72, 5.02, 5.19],
           sigmas: [0.34, 0.08, 0.42],
           label: "LOW",
-          caption: "The narrow blue factor carries more information, so it contributes more than the two noisier workers. Precision determines weight."
+          caption: "The narrow blue curve carries more information, so it contributes more than the two noisier workers. Precision determines weight."
         },
         conflict: {
           means: [4.66, 5.02, 5.48],
           sigmas: [0.12, 0.10, 0.11],
           label: "HIGH",
-          caption: "Confident disagreement can still produce a sharp pooled curve. The disagreement energy distinguishes concentration from consensus."
+          caption: "A precise combined estimate can still hide confident disagreement. The disagreement energy shows the difference between precision and consensus."
         }
       };
 
@@ -1668,12 +1668,12 @@
           context.fillStyle = "#7df0b7";
           context.font = "800 8px Inter, system-ui, sans-serif";
           context.textAlign = "center";
-          context.fillText("POOLED", labelX, layout.top + 3);
+          context.fillText("COMBINED", labelX, layout.top + 3);
         } else {
           context.fillStyle = "rgba(242,139,114,.78)";
           context.font = "800 10px Inter, system-ui, sans-serif";
           context.textAlign = "right";
-          context.fillText(result.duplicates.length ? "PROVENANCE CHECK FAILED" : "ADD AT LEAST TWO WORKERS", layout.right, layout.top + 3);
+          context.fillText(result.duplicates.length ? "REPEATED EVIDENCE ID" : "ADD AT LEAST TWO WORKERS", layout.right, layout.top + 3);
         }
 
         context.fillStyle = "rgba(247,255,249,.28)";
@@ -1714,15 +1714,15 @@
         const result = analyze();
         if (!result.reducible) {
           pooledOutput.textContent = result.duplicates.length ? "BLOCKED" : "—";
-          ciOutput.textContent = result.duplicates.length ? "overlap" : "need 2 workers";
+          ciOutput.textContent = result.duplicates.length ? "repeated ID" : "need 2 workers";
           energyOutput.textContent = "—";
           precisionOutput.textContent = "—";
           if (result.duplicates.length) {
-            status.textContent = `Merge blocked · repeated identifier: ${result.duplicates.join(", ")}`;
-            formulaOutput.textContent = "Merge blocked: resolve repeated evidence identifiers or model their dependence explicitly.";
+            status.textContent = `Repeated evidence ID · ${result.duplicates.join(", ")}`;
+            formulaOutput.textContent = "Confirm the evidence is distinct and correct the IDs, or use a model that accounts for dependence.";
           } else {
-            status.textContent = "Merge blocked · select at least two workers";
-            formulaOutput.textContent = "Merge blocked: select at least two compatible summaries.";
+            status.textContent = "Select at least two workers";
+            formulaOutput.textContent = "Choose at least two compatible worker summaries.";
           }
           status.dataset.tone = "blocked";
         } else {
@@ -1733,18 +1733,18 @@
           energyOutput.textContent = result.disagreement.toFixed(2);
           precisionOutput.textContent = result.total.toFixed(1);
           if (result.disagreement >= 6) {
-            status.textContent = "Merge algebra valid · conflict is high";
+            status.textContent = "ID check passed · worker conflict is high";
             status.dataset.tone = "warning";
           } else {
-            status.textContent = "Merge valid · no repeated identifiers detected";
+            status.textContent = "ID check passed · declared IDs are distinct";
             status.dataset.tone = "valid";
           }
           formulaOutput.textContent = `P = ${result.total.toFixed(1)} · SE = ${result.sigma.toFixed(3)} · Δ/2 = ${result.disagreement.toFixed(2)} · θ̂ = P⁻¹q`;
         }
 
         canvas.setAttribute("aria-label", result.reducible
-          ? `${result.enabled.length} adjustable worker distributions produce a pooled estimate of ${result.mean.toFixed(3)} with disagreement energy ${result.disagreement.toFixed(2)}.`
-          : `The merge is blocked because ${result.duplicates.length ? "evidence identifiers overlap" : "fewer than two workers are selected"}.`);
+          ? `${result.enabled.length} adjustable worker distributions produce a combined estimate of ${result.mean.toFixed(3)} with disagreement energy ${result.disagreement.toFixed(2)}.`
+          : `${result.duplicates.length ? "A repeated evidence identifier blocks the merge" : "Select at least two workers to merge"}.`);
         scheduleDraw();
       }
 

@@ -1,4 +1,4 @@
-"""Evidence-aware Gaussian reduction for independent worker summaries.
+"""Evidence-aware MapReduce for independent summaries from forkable compute.
 
 Each map worker emits a Gaussian/Wald confidence kernel
 
@@ -10,8 +10,8 @@ where ``J_k`` is the **per-observation** information, so the *total* precision o
 a shard is ``n_k * J_k``.  For disjoint, statistically independent shards with a
 common target, the reduce phase combines Gaussian factors by adding their natural
 parameters.  This is established inverse-information/confidence-distribution
-pooling; the paper contributes an evidence-aware execution contract and trust
-boundary, not a new estimator.
+pooling.  The paper contributes an evidence-aware execution contract and trust
+boundary around that established estimator.
 """
 from __future__ import annotations
 
@@ -246,8 +246,8 @@ class CanonicalSummary:
     while lineage uses order-preserving deduplication and is therefore sensitive to
     operand order. Literal overlap in non-empty evidence identifiers is rejected by
     default; callers must opt in explicitly when overlap is intentional and
-    statistically modeled elsewhere. Shared lineage is retained but not interpreted
-    as an independence model.
+    statistically modeled elsewhere. Shared lineage is retained for downstream
+    dependence modeling.
     """
 
     precision: list[list[float]]
@@ -416,7 +416,7 @@ def reduce_partition(cds: list[CD], *, allow_evidence_overlap: bool = False) -> 
 
 
 # ----------------------------------------------------------------------------
-# Outlier stress-test heuristic (not a certified Byzantine defense)
+# Outlier stress-test heuristic with limited robustness scope
 # ----------------------------------------------------------------------------
 def _mad(v: np.ndarray) -> float:
     med = np.median(v)
@@ -426,13 +426,14 @@ def _mad(v: np.ndarray) -> float:
 def byzantine_clip(cds: list[CD], kappa: float = 3.0):
     """Apply a scale-aware multivariate precision/location heuristic.
 
-    Returns ``(kept, flagged)`` where ``kept`` are clipped copies (inputs are not
-    mutated) and ``flagged`` lists the shard ids that were precision-clipped or
+    Returns ``(kept, flagged)`` where ``kept`` are clipped copies that preserve the
+    inputs and ``flagged`` lists the shard ids that were precision-clipped or
     location-downweighted. Precision is summarized by log determinant per
     dimension, whose relative values are invariant to a common invertible
     reparameterization. Location is scored with coordinate-wise median/MAD scaling
-    and a redescending weight. The latter is scale-aware but not rotation invariant.
-    This is a transparent stress-test heuristic, not a Byzantine-robust guarantee.
+    and a redescending weight. The coordinate basis therefore affects the location
+    score. This transparent heuristic supports exploratory stress testing. Certified
+    Byzantine robustness remains open work.
     """
     if not cds:
         return [], []
