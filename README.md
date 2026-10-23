@@ -10,7 +10,7 @@ supports it. Otherwise, one repeated mistake can look like confident agreement.
 This repository pairs a small evidence-aware reducer with deterministic checks,
 raw execution traces, and the paper:
 
-- [Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence](https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf)
+- [Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence](https://zozo123.github.io/boltzmann-mapreduce/evidence-aware-reduction.pdf)
 - [Interactive fusion explorer](https://zozo123.github.io/boltzmann-mapreduce/#explorer)
 
 ## Worker contract
