@@ -38,8 +38,7 @@ def _verify_site_contract() -> None:
     required = (
         "arXiv:2607.09689",
         "doi:10.48550/arXiv.2607.09689",
-        "https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/"
-        "main/docs/evidence-aware-reduction.pdf",
+        'href="evidence-aware-reduction.pdf"',
         "uv run --locked python scripts/verify_e2e.py",
         'id="explorer"',
         'id="explorerChart"',
