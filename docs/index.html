@@ -4,20 +4,39 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07110e">
-  <title>Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence</title>
-  <meta name="description" content="Fork workers freely while keeping their evidence, uncertainty, and shared origins visible.">
+  <title>Evidence-Aware MapReduce for Forkable Compute · Yossi Eliaz</title>
+  <meta name="description" content="Research prototype by Yossi Eliaz: merge forked-worker results by information weight while keeping uncertainty, evidence IDs and lineage visible.">
+  <meta name="author" content="Yossi Eliaz">
+  <link rel="canonical" href="https://zozo123.github.io/boltzmann-mapreduce/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://zozo123.github.io/boltzmann-mapreduce/">
-  <meta property="og:title" content="Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence">
-  <meta property="og:description" content="Separate execution fan-out from independent evidence.">
+  <meta property="og:title" content="Evidence-Aware MapReduce for Forkable Compute">
+  <meta property="og:description" content="Research prototype by Yossi Eliaz: merge forked-worker results by information weight while keeping uncertainty, evidence IDs and lineage visible.">
   <meta property="og:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Three uncertain worker distributions merging into one more precise combined result">
+  <meta property="og:image:alt" content="Evidence-Aware MapReduce for Forkable Compute, by Yossi Eliaz: three uncertain worker distributions merging into one more precise combined result">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence">
-  <meta name="twitter:description" content="Separate execution fan-out from independent evidence.">
+  <meta name="twitter:title" content="Evidence-Aware MapReduce for Forkable Compute">
+  <meta name="twitter:description" content="Research prototype by Yossi Eliaz: merge forked-worker results by information weight while keeping uncertainty, evidence IDs and lineage visible.">
   <meta name="twitter:image" content="https://zozo123.github.io/boltzmann-mapreduce/og.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Evidence-Aware MapReduce for Forkable Compute",
+    "description": "Research prototype by Yossi Eliaz: merge forked-worker results by information weight while keeping uncertainty, evidence IDs and lineage visible.",
+    "url": "https://zozo123.github.io/boltzmann-mapreduce/",
+    "image": "https://zozo123.github.io/boltzmann-mapreduce/og.png",
+    "sameAs": "https://arxiv.org/abs/2607.09689",
+    "author": {
+      "@type": "Person",
+      "name": "Yossi Eliaz",
+      "url": "https://yossieliaz.netlify.app/",
+      "sameAs": ["https://github.com/zozo123", "https://www.linkedin.com/in/yossi-eliaz/"]
+    }
+  }
+  </script>
   <style>
     :root {
       --night: #07110e;
@@ -198,6 +217,15 @@
       font-size: clamp(18px, 1.7vw, 21px);
       line-height: 1.55;
     }
+    .byline {
+      margin: -6px 0 24px;
+      color: rgba(239,250,243,.6);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    .byline a { color: var(--mint); text-decoration-color: rgba(125,240,183,.4); text-underline-offset: 3px; }
+    .byline a:hover { text-decoration-color: currentColor; }
     .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
     .button {
       display: inline-flex;
@@ -978,6 +1006,7 @@
         <div>
           <p class="kicker">Evidence-Aware MapReduce for Forkable Compute</p>
           <h1>Separate execution fan-out from <em>independent evidence</em>.</h1>
+          <p class="byline">By <a href="https://zozo123.github.io/">Yossi Eliaz</a> · research prototype · paper <a href="https://arxiv.org/abs/2607.09689">arXiv:2607.09689</a></p>
           <p class="hero-copy">Fork workers freely. Each answer carries an estimate, its uncertainty, and where its evidence came from. Independent results then combine in proportion to the information they contain.</p>
           <div class="actions">
             <a class="button primary" href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Read the paper</a>
@@ -1324,6 +1353,8 @@
         <a href="https://github.com/zozo123/boltzmann-mapreduce">GitHub</a>
         <a href="https://arxiv.org/abs/2607.09689">arXiv</a>
         <a href="https://raw.githubusercontent.com/zozo123/boltzmann-mapreduce/main/docs/evidence-aware-reduction.pdf">Repository PDF</a>
+        <a href="https://yossieliaz.netlify.app/">Yossi Eliaz</a>
+        <a href="https://zozo123.github.io/">Writing &amp; experiments</a>
       </div>
     </div>
   </footer>

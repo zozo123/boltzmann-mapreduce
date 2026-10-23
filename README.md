@@ -1,5 +1,7 @@
 # Evidence-Aware MapReduce for Forkable Compute: Separating Execution Fan-Out from Independent Evidence
 
+By [Yossi Eliaz](https://yossieliaz.netlify.app/) · research prototype · [live page](https://zozo123.github.io/boltzmann-mapreduce/) · [arXiv:2607.09689](https://arxiv.org/abs/2607.09689)
+
 Forkable compute can launch many workers from one snapshot. Those workers often
 inherit the same model, prompt, repository, tests, observations, or ancestor. A
 reducer therefore needs to know where each answer came from and how much evidence
